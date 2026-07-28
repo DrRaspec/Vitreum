@@ -26,6 +26,15 @@
 
 <p align="center"><em>Actual iOS 26.5 simulator capture—not concept artwork. Glass is reserved for the control and navigation layer.</em></p>
 
+## Widget preview
+
+These are real simulator captures of Vitreum widgets over Flutter content:
+
+| Scoped native glass overlay | Simulated glass navigation | Diagnostics surface |
+|---|---|---|
+| <img src="doc/assets/showcase-native-single-overlay.png" alt="VitreumNativeGlassOverlay rendering a native glass search control" width="240" /> | <img src="doc/assets/showcase-simulated-nav-blue.png" alt="VitreumGlassNavigationBar rendered with the cross-platform Flutter simulation" width="240" /> | <img src="doc/assets/showcase-diagnostics-selected.png" alt="Vitreum diagnostics screen showing glass rendering controls" width="240" /> |
+| `VitreumNativeGlassOverlay` | `VitreumGlassNavigationBar` | Runtime renderer diagnostics |
+
 ## Why Vitreum
 
 Vitreum gives Flutter applications one stable API for small, adaptive glass
