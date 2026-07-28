@@ -1,0 +1,41 @@
+name: vitreum
+description: Adaptive native and simulated glass surfaces for Flutter.
+version: 0.1.0
+homepage: https://pub.dev/packages/vitreum
+documentation: https://pub.dev/documentation/vitreum/latest/
+topics:
+  - glass
+  - ui
+  - ios
+  - android
+screenshots:
+  - description: Vitreum's Cupertino showcase using one scoped native overlay on iOS 26.5.
+    path: doc/assets/vitreum-showcase-ios26.png
+  - description: Controlled native-over-Flutter composition diagnostic on iOS 26.5.
+    path: doc/assets/diagnostic-native-over-flutter.png
+  - description: Vitreum's Flutter approximation over the same diagnostic background.
+    path: doc/assets/diagnostic-flutter-simulated.png
+
+environment:
+  sdk: ^3.12.1
+  flutter: ">=3.35.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  shaders:
+    - shaders/vitreum_refraction.frag
+  plugin:
+    platforms:
+      android:
+        package: dev.vitreum.vitreum
+        pluginClass: VitreumPlugin
+      ios:
+        pluginClass: VitreumPlugin
