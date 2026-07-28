@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-7C83FF" />
+  <img alt="Version 0.1.1" src="https://img.shields.io/badge/version-0.1.1-7C83FF" />
   <img alt="Flutter 3.35+" src="https://img.shields.io/badge/Flutter-3.35%2B-54C5F8?logo=flutter&logoColor=white" />
   <img alt="Platforms iOS and Android" src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android-101526" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-6DD5B5" />
@@ -90,7 +90,7 @@ Add Vitreum to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  vitreum: ^0.1.0
+  vitreum: ^0.1.1
 ```
 
 Then fetch dependencies:
@@ -417,7 +417,7 @@ platform selects the readable solid fallback.
 <details>
 <summary><strong>High quality looks like balanced</strong></summary>
 
-The optional refraction shader is not enabled in 0.1.0. High quality safely
+The optional refraction shader is not enabled in 0.1.1. High quality safely
 resolves to balanced when shader support is unavailable.
 
 </details>

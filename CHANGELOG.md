@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Added a prominent widget preview gallery to the package README using real
+  iOS simulator captures.
+
 ## 0.1.0
 
 - Added immutable surface, shape, quality, mode, fallback, and capability APIs.
