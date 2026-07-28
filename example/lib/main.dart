@@ -6,6 +6,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:vitreum/vitreum.dart';
 
+const _showPerformanceOverlay = bool.fromEnvironment(
+  'VITREUM_PERFORMANCE_OVERLAY',
+);
+
 void main() => runApp(const VitreumExample());
 
 abstract final class _NativeTabReference {
@@ -40,6 +44,11 @@ class _NativeHostedTabApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CupertinoApp(
     debugShowCheckedModeBanner: false,
+    builder: (context, child) => VitreumPerformanceOverlay(
+      enabled: _showPerformanceOverlay,
+      label: 'Native host · ${page.name}',
+      child: child ?? const SizedBox.shrink(),
+    ),
     theme: const CupertinoThemeData(
       brightness: Brightness.dark,
       primaryColor: CupertinoColors.systemBlue,
@@ -140,6 +149,11 @@ class VitreumExample extends StatelessWidget {
     return CupertinoApp(
       debugShowCheckedModeBanner: false,
       title: 'Vitreum',
+      builder: (context, child) => VitreumPerformanceOverlay(
+        enabled: _showPerformanceOverlay,
+        label: 'Example · rolling 120 frames',
+        child: child ?? const SizedBox.shrink(),
+      ),
       theme: const CupertinoThemeData(
         brightness: Brightness.dark,
         primaryColor: CupertinoColors.systemCyan,

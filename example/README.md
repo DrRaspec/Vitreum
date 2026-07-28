@@ -42,8 +42,14 @@ flutter run
 For meaningful performance inspection:
 
 ```sh
-flutter run --profile
+flutter run --profile \
+  --dart-define=VITREUM_PERFORMANCE_OVERLAY=true
 ```
+
+This enables the opt-in `VitreumPerformanceOverlay` over every example route.
+It reports rolling FPS, average frame time, average/maximum build and raster
+time, janky frames, raster-cache image data, sample count, and the configured
+frame budget. The overlay is disabled by default.
 
 ## Profiling checklist
 

@@ -335,6 +335,35 @@ high-contrast contexts also select solid rendering.
 Glass is a rendering effect, not a free decoration. Profile the actual screen
 on representative hardware.
 
+Wrap a route or application with the opt-in live overlay:
+
+```dart
+VitreumPerformanceOverlay(
+  enabled: const bool.fromEnvironment('VITREUM_PERFORMANCE_OVERLAY'),
+  label: 'catalog · simulated · balanced',
+  child: const MyApp(),
+)
+```
+
+Launch in profile mode:
+
+```sh
+flutter run --profile \
+  --dart-define=VITREUM_PERFORMANCE_OVERLAY=true
+```
+
+The panel reports rolling FPS, frame time, average/maximum build and raster
+time, janky frames, raster-cache image data, sample count, and the configured
+frame budget. FPS reflects rendered frames, so evaluate it while the target
+animation or interaction is active. The overlay adds a small measurement cost
+of its own, so leave it disabled for normal production launches. Its default
+16.67 ms budget targets 60 Hz; pass
+`frameBudget: Duration(microseconds: 8333)` when explicitly evaluating 120 Hz.
+Use DevTools for memory, CPU, GPU, energy, and timeline investigation.
+See the [performance diagnostics guide](doc/performance_debugging.md) for metric
+definitions, 60/90/120 Hz budgets, test procedure, interpretation, and
+limitations.
+
 - Keep glass surfaces small and bounded.
 - Keep fixed glass controls outside scrolling list rows.
 - Prefer `VitreumQuality.low` on dense or performance-sensitive screens.

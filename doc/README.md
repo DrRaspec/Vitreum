@@ -14,6 +14,7 @@
 | [Native glass composition](native_composition_spike.md) | Platform-view topology, validated scope, failure analysis, runtime gating, and production validation requirements |
 | [Visual validation](visual_validation.md) | Real simulator captures, native/simulated comparison, observable differences, and known limitations |
 | [Interaction and motion](behavior.md) | Timings, press feedback, quality degradation, grouping, scrolling, and backdrop validation |
+| [Performance diagnostics](performance_debugging.md) | Live FPS/build/raster/jank overlay, frame budgets, profiling procedure, interpretation, and platform limitations |
 
 ## Start here
 

@@ -1,6 +1,9 @@
+import 'dart:ui' show FrameTiming;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vitreum/src/core/vitreum_backend_selector.dart';
+import 'package:vitreum/src/debug/vitreum_performance_overlay.dart';
 import 'package:vitreum/vitreum.dart';
 
 const VitreumCapabilities _androidCapabilities = VitreumCapabilities(
@@ -18,6 +21,37 @@ const VitreumCapabilities _androidCapabilities = VitreumCapabilities(
 
 void main() {
   group('configuration', () {
+    test('performance timings calculate FPS, costs, jank, and cache', () {
+      final snapshot = debugSummarizePerformanceTimings(<FrameTiming>[
+        FrameTiming(
+          vsyncStart: 0,
+          buildStart: 1000,
+          buildFinish: 5000,
+          rasterStart: 5000,
+          rasterFinish: 11000,
+          rasterFinishWallTime: 11000,
+        ),
+        FrameTiming(
+          vsyncStart: 16667,
+          buildStart: 18000,
+          buildFinish: 38000,
+          rasterStart: 38000,
+          rasterFinish: 43000,
+          rasterFinishWallTime: 43000,
+          layerCacheBytes: 1024 * 1024,
+          pictureCacheBytes: 512 * 1024,
+        ),
+      ]);
+
+      expect(snapshot.framesPerSecond, closeTo(60, 0.01));
+      expect(snapshot.averageBuildTime, const Duration(milliseconds: 12));
+      expect(snapshot.averageRasterTime, const Duration(microseconds: 5500));
+      expect(snapshot.maximumBuildTime, const Duration(milliseconds: 20));
+      expect(snapshot.jankyFrameCount, 1);
+      expect(snapshot.jankPercentage, 50);
+      expect(snapshot.rasterCacheMegabytes, 1.5);
+    });
+
     test('fallback values are clamped and non-finite values are replaced', () {
       const input = VitreumFallbackStyle(
         blurSigma: double.infinity,
@@ -149,6 +183,34 @@ void main() {
   });
 
   group('widgets', () {
+    testWidgets('performance overlay is opt-in and preserves its child', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: VitreumPerformanceOverlay(child: Text('Measured screen')),
+        ),
+      );
+
+      expect(find.text('Measured screen'), findsOneWidget);
+      expect(find.textContaining('VITREUM PERF'), findsNothing);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: VitreumPerformanceOverlay(
+            enabled: true,
+            label: 'simulated · low',
+            child: Text('Measured screen'),
+          ),
+        ),
+      );
+
+      expect(find.text('Measured screen'), findsOneWidget);
+      expect(find.textContaining('VITREUM PERF'), findsOneWidget);
+      expect(find.text('simulated · low'), findsOneWidget);
+      expect(find.text('Collecting frames…'), findsOneWidget);
+    });
+
     testWidgets('lays out its child and preserves interaction', (tester) async {
       var taps = 0;
       await tester.pumpWidget(

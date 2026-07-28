@@ -10,6 +10,8 @@ export 'src/core/vitreum_quality.dart' show VitreumQuality;
 export 'src/core/vitreum_shape.dart' show VitreumShape, VitreumShapeKind;
 export 'src/core/vitreum_style.dart' show VitreumStyle;
 export 'src/core/vitreum_transition.dart' show VitreumTransitionType;
+export 'src/debug/vitreum_performance_overlay.dart'
+    show VitreumPerformanceOverlay, VitreumPerformanceSnapshot;
 export 'src/widgets/vitreum_glass.dart' show VitreumGlass;
 export 'src/widgets/vitreum_glass_bar.dart' show VitreumGlassBar;
 export 'src/widgets/vitreum_glass_button.dart' show VitreumGlassButton;
