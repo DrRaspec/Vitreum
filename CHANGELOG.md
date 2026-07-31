@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Added repository and issue tracker metadata so pub.dev links users to GitHub.
+- Changed README assets and documentation links to absolute GitHub URLs so they
+  render and remain navigable on pub.dev.
+
 ## 0.1.1
 
 - Added a prominent widget preview gallery to the package README using real

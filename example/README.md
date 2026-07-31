@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../doc/assets/vitreum-logo.svg" alt="Vitreum logo" width="96" />
+  <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-logo.svg" alt="Vitreum logo" width="96" />
 </p>
 
 # Vitreum example
@@ -7,7 +7,7 @@
 The example application demonstrates Vitreum over a moving, colorful background
 so blur quality, contrast, and fallback behavior remain visible.
 
-![Vitreum interface preview](../doc/assets/vitreum-showcase-ios26.png)
+![Vitreum interface preview](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-showcase-ios26.png)
 
 > This is an actual iOS 26.5 simulator capture using one scoped native search
 > overlay; other Vitreum surfaces use the portable renderer.

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="doc/assets/vitreum-logo.svg" alt="Vitreum logo" width="132" />
+  <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-logo.svg" alt="Vitreum logo" width="132" />
 </p>
 
 <h1 align="center">Vitreum</h1>
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.1.1" src="https://img.shields.io/badge/version-0.1.1-7C83FF" />
+  <img alt="Version 0.1.2" src="https://img.shields.io/badge/version-0.1.2-7C83FF" />
   <img alt="Flutter 3.35+" src="https://img.shields.io/badge/Flutter-3.35%2B-54C5F8?logo=flutter&logoColor=white" />
   <img alt="Platforms iOS and Android" src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android-101526" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-6DD5B5" />
@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="doc/assets/vitreum-showcase-ios26.png" alt="Vitreum's Cupertino showcase using one scoped native glass overlay on iOS 26" width="420" />
+  <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-showcase-ios26.png" alt="Vitreum's Cupertino showcase using one scoped native glass overlay on iOS 26" width="420" />
 </p>
 
 <p align="center"><em>Actual iOS 26.5 simulator capture—not concept artwork. Glass is reserved for the control and navigation layer.</em></p>
@@ -32,7 +32,7 @@ These are real simulator captures of Vitreum widgets over Flutter content:
 
 | Scoped native glass overlay | Simulated glass navigation | Diagnostics surface |
 |---|---|---|
-| <img src="doc/assets/showcase-native-single-overlay.png" alt="VitreumNativeGlassOverlay rendering a native glass search control" width="240" /> | <img src="doc/assets/showcase-simulated-nav-blue.png" alt="VitreumGlassNavigationBar rendered with the cross-platform Flutter simulation" width="240" /> | <img src="doc/assets/showcase-diagnostics-selected.png" alt="Vitreum diagnostics screen showing glass rendering controls" width="240" /> |
+| <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/showcase-native-single-overlay.png" alt="VitreumNativeGlassOverlay rendering a native glass search control" width="240" /> | <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/showcase-simulated-nav-blue.png" alt="VitreumGlassNavigationBar rendered with the cross-platform Flutter simulation" width="240" /> | <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/showcase-diagnostics-selected.png" alt="Vitreum diagnostics screen showing glass rendering controls" width="240" /> |
 | `VitreumNativeGlassOverlay` | `VitreumGlassNavigationBar` | Runtime renderer diagnostics |
 
 ## Why Vitreum
@@ -57,7 +57,7 @@ unavailable.
 > composition, so the generic `VitreumGlass` API and automatic mode remain
 > simulated. Native use is isolated in `VitreumNativeGlassOverlay`. See the
 > evidence and exact scope in the
-> [native composition note](doc/native_composition_spike.md).
+> [native composition note](https://github.com/DrRaspec/Vitreum/blob/main/doc/native_composition_spike.md).
 
 Vitreum is not affiliated with or endorsed by Apple.
 
@@ -68,12 +68,13 @@ navigation. These are real iOS 26.5 simulator captures:
 
 | System UIKit content | System bar with Flutter content | Vitreum simulated |
 |---|---|---|
-| <img src="doc/assets/system-uitabbarcontroller-native.png" alt="Native UITabBarController with UIKit content" width="240" /> | <img src="doc/assets/system-uitabbarcontroller-flutter.png" alt="Native UITabBarController with Flutter content" width="240" /> | <img src="doc/assets/vitreum-simulated-tabbar-comparison.png" alt="Vitreum simulated navigation" width="240" /> |
+| <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-native.png" alt="Native UITabBarController with UIKit content" width="240" /> | <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-flutter.png" alt="Native UITabBarController with Flutter content" width="240" /> | <img src="https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-simulated-tabbar-comparison.png" alt="Vitreum simulated navigation" width="240" /> |
 
 The first two use Apple's actual `UITabBarController`; the third is the
 cross-platform Flutter approximation. See the
-[complete native integration guide](doc/native_tab_scaffold.md) or browse the
-[documentation index](doc/README.md).
+[complete native integration guide](https://github.com/DrRaspec/Vitreum/blob/main/doc/native_tab_scaffold.md)
+or browse the
+[documentation index](https://github.com/DrRaspec/Vitreum/blob/main/doc/README.md).
 
 ## Compatibility
 
@@ -90,7 +91,7 @@ Add Vitreum to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  vitreum: ^0.1.1
+  vitreum: ^0.1.2
 ```
 
 Then fetch dependencies:
@@ -217,7 +218,8 @@ For the real system behavior, the example iOS host provides
 `UITabBarItem`s and default system appearance. It requires native host
 integration because a native container view controller cannot be installed by
 an ordinary Flutter widget. See the
-[native tab-bar reference](doc/native_tab_scaffold.md) for the three comparison
+[native tab-bar reference](https://github.com/DrRaspec/Vitreum/blob/main/doc/native_tab_scaffold.md)
+for the three comparison
 modes, FlutterEngineGroup integration, minimization settings, and limitations.
 
 ### Grouped surfaces
@@ -369,7 +371,9 @@ of its own, so leave it disabled for normal production launches. Its default
 16.67 ms budget targets 60 Hz; pass
 `frameBudget: Duration(microseconds: 8333)` when explicitly evaluating 120 Hz.
 Use DevTools for memory, CPU, GPU, energy, and timeline investigation.
-See the [performance diagnostics guide](doc/performance_debugging.md) for metric
+See the
+[performance diagnostics guide](https://github.com/DrRaspec/Vitreum/blob/main/doc/performance_debugging.md)
+for metric
 definitions, 60/90/120 Hz budgets, test procedure, interpretation, and
 limitations.
 
@@ -417,7 +421,7 @@ platform selects the readable solid fallback.
 <details>
 <summary><strong>High quality looks like balanced</strong></summary>
 
-The optional refraction shader is not enabled in 0.1.1. High quality safely
+The optional refraction shader is not enabled in 0.1.2. High quality safely
 resolves to balanced when shader support is unavailable.
 
 </details>
@@ -432,16 +436,21 @@ individual list rows.
 
 ## Example and development
 
-The [example application](example/README.md) separates a polished Cupertino
+The
+[example application](https://github.com/DrRaspec/Vitreum/blob/main/example/README.md)
+separates a polished Cupertino
 showcase from a diagnostics page containing exact capability values, three
 composition scenes, and a configurable stress test.
 
-See the [native-versus-simulated visual validation](doc/visual_validation.md)
+See the
+[native-versus-simulated visual validation](https://github.com/DrRaspec/Vitreum/blob/main/doc/visual_validation.md)
 for real captures, evaluation criteria, and known differences.
 Selected interaction timings and quality degradation are documented in
-[behavior.md](doc/behavior.md).
+[behavior.md](https://github.com/DrRaspec/Vitreum/blob/main/doc/behavior.md).
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), then run:
+Contributions are welcome. Read
+[CONTRIBUTING.md](https://github.com/DrRaspec/Vitreum/blob/main/CONTRIBUTING.md),
+then run:
 
 ```sh
 flutter pub get
@@ -452,4 +461,5 @@ flutter test
 
 ## License
 
-Vitreum is available under the [MIT License](LICENSE).
+Vitreum is available under the
+[MIT License](https://github.com/DrRaspec/Vitreum/blob/main/LICENSE).

@@ -1,7 +1,9 @@
 name: vitreum
 description: Adaptive native and simulated glass surfaces for Flutter.
-version: 0.1.1
-homepage: https://pub.dev/packages/vitreum
+version: 0.1.2
+homepage: https://github.com/DrRaspec/Vitreum
+repository: https://github.com/DrRaspec/Vitreum
+issue_tracker: https://github.com/DrRaspec/Vitreum/issues
 documentation: https://pub.dev/documentation/vitreum/latest/
 topics:
   - glass
