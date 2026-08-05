@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.2.0 - 2026-08-05
+
+### Breaking change
+
+- `style`, `quality`, and `fallbackStyle` fields on themed widgets are now
+  nullable. A null value means “inherit from `VitreumThemeData`.” Constructor
+  call sites remain compatible, but code that reads these fields directly must
+  handle null.
+- Raised the declared Flutter minimum to 3.44 so it matches the existing Dart
+  3.12.1 language constraint instead of advertising an impossible toolchain
+  combination.
+- Documented Xcode 26 and the iOS 26 SDK as iOS build requirements; the runtime
+  deployment target remains iOS 13 with simulation on iOS 13–25.
+
+### Added and fixed
+
+- Added consistent shape-aware Flutter child clipping across native, simulated,
+  and solid glass surfaces, with configurable `clipBehavior`.
+- Added simulated edge width/color and shadow blur/offset/color controls.
+- Added package-wide defaults through the `VitreumThemeData` theme extension.
+- Added `VitreumInteractionStyle` for button feedback and target sizing.
+- Added `VitreumNavigationBarStyle` plus configurable navigation shape and tint.
+- Added Material theme-extension and Cupertino-compatible inherited-theme
+  integration with per-widget override precedence.
+- Added `inheritTint` so individual surfaces can opt out of a package-wide
+  theme tint without substituting a transparent native tint.
+- Fixed themed high-quality buttons so pointer tracking matches an explicitly
+  configured high-quality button.
+- Corrected stale CocoaPods homepage, author, and version metadata.
+- Migrated the Android plugin to Flutter 3.44's built-in Kotlin configuration.
+
 ## 0.1.2
 
 - Added repository and issue tracker metadata so pub.dev links users to GitHub.

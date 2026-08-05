@@ -8,6 +8,7 @@ import '../core/vitreum_config.dart';
 import '../core/vitreum_interaction.dart';
 import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
+import '../widgets/vitreum_shape_clip.dart';
 import 'shader/vitreum_shader_controller.dart';
 
 /// Bounded Flutter approximation informed by Apple's documented material
@@ -24,6 +25,7 @@ class FlutterGlassRenderer extends StatefulWidget {
     required this.mergeSpacing,
     required this.interaction,
     required this.reduceMotion,
+    required this.clipBehavior,
     super.key,
   });
 
@@ -37,6 +39,7 @@ class FlutterGlassRenderer extends StatefulWidget {
   final double mergeSpacing;
   final VitreumInteractionData interaction;
   final bool reduceMotion;
+  final Clip clipBehavior;
 
   @override
   State<FlutterGlassRenderer> createState() => _FlutterGlassRendererState();
@@ -99,13 +102,31 @@ class _FlutterGlassRendererState extends State<FlutterGlassRenderer> {
             painter: _AmbientShadowPainter(
               shape: widget.shape,
               strength: values.shadowStrength,
+              blurSigma: values.shadowBlurSigma,
+              offset: values.shadowOffset,
+              color: values.shadowColor,
               mergeSpacing: widget.backend == VitreumBackend.flutterLow
                   ? 0
                   : widget.mergeSpacing,
             ),
-            child: ClipPath(
-              clipper: _GlassShapeClipper(widget.shape),
-              child: filteredSurface,
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: <Widget>[
+                Positioned.fill(
+                  child: ClipPath(
+                    clipper: _GlassShapeClipper(widget.shape),
+                    clipBehavior: widget.clipBehavior == Clip.none
+                        ? Clip.antiAlias
+                        : widget.clipBehavior,
+                    child: filteredSurface,
+                  ),
+                ),
+                VitreumShapeClip(
+                  shape: widget.shape,
+                  clipBehavior: widget.clipBehavior,
+                  child: widget.child,
+                ),
+              ],
             ),
           );
         },
@@ -162,7 +183,6 @@ class _FlutterGlassRendererState extends State<FlutterGlassRenderer> {
           ? Curves.easeOutCubic
           : Curves.easeInOutCubic,
       tween: Tween<double>(end: targetInteraction),
-      child: widget.child,
       builder: (context, interactionIntensity, child) => Stack(
         fit: StackFit.passthrough,
         children: <Widget>[
@@ -205,12 +225,13 @@ class _FlutterGlassRendererState extends State<FlutterGlassRenderer> {
                 painter: _EdgeLightingPainter(
                   shape: widget.shape,
                   strength: values.borderOpacity + interactionIntensity * 0.06,
+                  width: values.edgeWidth,
+                  color: values.edgeColor,
                   lightBackground: !dark,
                 ),
               ),
             ),
           ),
-          child!,
         ],
       ),
     );
@@ -218,26 +239,7 @@ class _FlutterGlassRendererState extends State<FlutterGlassRenderer> {
 }
 
 Path _shapePath(Size size, VitreumShape shape, [double inset = 0]) {
-  final rect = (Offset.zero & size).deflate(inset);
-  return switch (shape.kind) {
-    VitreumShapeKind.roundedRectangle =>
-      Path()..addRRect(
-        RRect.fromRectAndRadius(
-          rect,
-          Radius.circular(
-            (shape.radius - inset).clamp(0, rect.shortestSide / 2),
-          ),
-        ),
-      ),
-    VitreumShapeKind.capsule =>
-      Path()..addRRect(
-        RRect.fromRectAndRadius(rect, Radius.circular(rect.shortestSide / 2)),
-      ),
-    VitreumShapeKind.circle =>
-      Path()..addOval(
-        Rect.fromCircle(center: rect.center, radius: rect.shortestSide / 2),
-      ),
-  };
+  return vitreumShapePath(size, shape, inset: inset);
 }
 
 class _GlassShapeClipper extends CustomClipper<Path> {
@@ -257,15 +259,19 @@ class _EdgeLightingPainter extends CustomPainter {
     required this.shape,
     required this.strength,
     required this.lightBackground,
+    required this.width,
+    required this.color,
   });
 
   final VitreumShape shape;
   final double strength;
   final bool lightBackground;
+  final double width;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.isEmpty || strength <= 0) return;
+    if (size.isEmpty || strength <= 0 || width <= 0) return;
     final rect = Offset.zero & size;
     // A sweep lets each corner carry a different edge weight. Keeping this
     // contextual white in soft-light mode makes it borrow colour from the
@@ -274,30 +280,32 @@ class _EdgeLightingPainter extends CustomPainter {
     final effectiveStrength = strength * (lightBackground ? 0.46 : 1);
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
+      ..strokeWidth = width
       ..blendMode = BlendMode.softLight
       ..shader = SweepGradient(
         center: Alignment.center,
         startAngle: 0,
         endAngle: math.pi * 2,
         colors: <Color>[
-          Colors.white.withValues(alpha: effectiveStrength * 0.285),
-          Colors.white.withValues(alpha: effectiveStrength * 0.14),
-          Colors.white.withValues(alpha: effectiveStrength * 0.29),
-          Colors.white.withValues(alpha: effectiveStrength * 0.72),
-          Colors.white.withValues(alpha: effectiveStrength * 0.43),
-          Colors.white.withValues(alpha: effectiveStrength * 0.285),
+          color.withValues(alpha: color.a * effectiveStrength * 0.285),
+          color.withValues(alpha: color.a * effectiveStrength * 0.14),
+          color.withValues(alpha: color.a * effectiveStrength * 0.29),
+          color.withValues(alpha: color.a * effectiveStrength * 0.72),
+          color.withValues(alpha: color.a * effectiveStrength * 0.43),
+          color.withValues(alpha: color.a * effectiveStrength * 0.285),
         ],
         stops: const <double>[0, 0.125, 0.375, 0.625, 0.875, 1],
       ).createShader(rect);
-    canvas.drawPath(_shapePath(size, shape, 0.8), paint);
+    canvas.drawPath(_shapePath(size, shape, math.max(0.8, width / 2)), paint);
   }
 
   @override
   bool shouldRepaint(_EdgeLightingPainter oldDelegate) =>
       oldDelegate.shape != shape ||
       oldDelegate.strength != strength ||
-      oldDelegate.lightBackground != lightBackground;
+      oldDelegate.lightBackground != lightBackground ||
+      oldDelegate.width != width ||
+      oldDelegate.color != color;
 }
 
 class _AmbientShadowPainter extends CustomPainter {
@@ -305,23 +313,29 @@ class _AmbientShadowPainter extends CustomPainter {
     required this.shape,
     required this.strength,
     required this.mergeSpacing,
+    required this.blurSigma,
+    required this.offset,
+    required this.color,
   });
 
   final VitreumShape shape;
   final double strength;
   final double mergeSpacing;
+  final double blurSigma;
+  final Offset offset;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty || strength <= 0) return;
     canvas.save();
-    canvas.translate(0, 3);
-    canvas.drawPath(
-      _shapePath(size, shape, 1.5),
-      Paint()
-        ..color = Colors.black.withValues(alpha: strength * 0.34)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-    );
+    canvas.translate(offset.dx, offset.dy);
+    final shadowPaint = Paint()
+      ..color = color.withValues(alpha: color.a * strength * 0.34);
+    if (blurSigma > 0) {
+      shadowPaint.maskFilter = MaskFilter.blur(BlurStyle.normal, blurSigma);
+    }
+    canvas.drawPath(_shapePath(size, shape, 1.5), shadowPaint);
     if (mergeSpacing > 0) {
       canvas.drawPath(
         _shapePath(size, shape, 0.5),
@@ -340,7 +354,10 @@ class _AmbientShadowPainter extends CustomPainter {
   bool shouldRepaint(_AmbientShadowPainter oldDelegate) =>
       oldDelegate.shape != shape ||
       oldDelegate.strength != strength ||
-      oldDelegate.mergeSpacing != mergeSpacing;
+      oldDelegate.mergeSpacing != mergeSpacing ||
+      oldDelegate.blurSigma != blurSigma ||
+      oldDelegate.offset != offset ||
+      oldDelegate.color != color;
 }
 
 class _InteractionLightPainter extends CustomPainter {

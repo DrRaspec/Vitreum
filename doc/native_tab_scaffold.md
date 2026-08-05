@@ -10,13 +10,13 @@ Xcode 26.6.
 
 | System UIKit content | System bar with Flutter content | Vitreum simulated |
 |---|---|---|
-| ![UITabBarController with native UIKit scrolling content](assets/system-uitabbarcontroller-native.png) | ![UITabBarController hosting FlutterEngineGroup content](assets/system-uitabbarcontroller-flutter.png) | ![Vitreum simulated Flutter navigation](assets/vitreum-simulated-tabbar-comparison.png) |
+| ![UITabBarController with native UIKit scrolling content](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-native.png) | ![UITabBarController hosting FlutterEngineGroup content](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-flutter.png) | ![Vitreum simulated Flutter navigation](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-simulated-tabbar-comparison.png) |
 | Actual `UITabBarController` | Actual `UITabBarController` | Flutter approximation |
 
 Recordings:
 
-- [System selection, scroll-down minimization, scroll-up expansion, and colorful backdrop validation](assets/system-uitabbarcontroller-selection-scroll.mp4)
-- [Vitreum simulated selection and scrolling comparison](assets/vitreum-simulated-tabbar-comparison.mp4)
+- [System selection, scroll-down minimization, scroll-up expansion, and colorful backdrop validation](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-selection-scroll.mp4)
+- [Vitreum simulated selection and scrolling comparison](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-simulated-tabbar-comparison.mp4)
 
 ## Choose the correct component
 

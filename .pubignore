@@ -1,0 +1,14 @@
+**/.dart_tool/
+**/.flutter-plugins-dependencies
+**/.idea/
+**/.DS_Store
+**/*.iml
+**/build/
+**/coverage/
+**/doc/api/
+**/migrate_working_dir/
+
+doc/assets/*
+!doc/assets/diagnostic-flutter-simulated.png
+!doc/assets/diagnostic-native-over-flutter.png
+!doc/assets/vitreum-showcase-ios26.png

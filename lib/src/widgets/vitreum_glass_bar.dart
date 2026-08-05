@@ -5,6 +5,7 @@ import '../core/vitreum_config.dart';
 import '../core/vitreum_quality.dart';
 import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
+import '../core/vitreum_theme.dart';
 import 'vitreum_glass.dart';
 
 /// Convenience glass surface for toolbars and floating navigation bars.
@@ -12,28 +13,50 @@ class VitreumGlassBar extends StatefulWidget {
   const VitreumGlassBar({
     required this.child,
     this.mode = VitreumMode.automatic,
-    this.style = VitreumStyle.regular,
-    this.quality = VitreumQuality.adaptive,
+    this.style,
+    this.quality,
     this.shape = const VitreumShape.capsule(),
-    this.fallbackStyle = const VitreumFallbackStyle(),
+    this.fallbackStyle,
     this.tint,
+    this.inheritTint = true,
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     this.semanticLabel,
     this.scrollController,
     this.minimizeOnScroll = false,
     this.scrollEdgeTreatment = false,
     this.minimizedTranslation = const Offset(0, 0.18),
+    this.clipBehavior = Clip.antiAlias,
     super.key,
   });
 
+  /// Bar content.
   final Widget child;
+
+  /// Requested backend-selection mode.
   final VitreumMode mode;
-  final VitreumStyle style;
-  final VitreumQuality quality;
+
+  /// Material style, or null to inherit from [VitreumThemeData].
+  final VitreumStyle? style;
+
+  /// Simulation quality, or null to inherit from [VitreumThemeData].
+  final VitreumQuality? quality;
+
+  /// Bar surface and clipping geometry.
   final VitreumShape shape;
-  final VitreumFallbackStyle fallbackStyle;
+
+  /// Fallback configuration, or null to inherit from [VitreumThemeData].
+  final VitreumFallbackStyle? fallbackStyle;
+
+  /// Optional tint, with theme fallback.
   final Color? tint;
+
+  /// Whether a null [tint] inherits the theme tint.
+  final bool inheritTint;
+
+  /// Empty space around [child].
   final EdgeInsetsGeometry padding;
+
+  /// Optional semantic label for the bar container.
   final String? semanticLabel;
 
   /// Scroll source used by [minimizeOnScroll] and [scrollEdgeTreatment].
@@ -49,6 +72,9 @@ class VitreumGlassBar extends StatefulWidget {
   /// Fractional translation applied in the minimized state. Bottom bars
   /// normally use a positive Y value; top bars can use a negative value.
   final Offset minimizedTranslation;
+
+  /// How the Flutter child is clipped to [shape].
+  final Clip clipBehavior;
 
   @override
   State<VitreumGlassBar> createState() => _VitreumGlassBarState();
@@ -125,19 +151,23 @@ class _VitreumGlassBarState extends State<VitreumGlassBar> {
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final theme = VitreumThemeData.of(context);
+    final style = widget.style ?? theme.style;
+    final quality = widget.quality ?? theme.quality;
+    final fallbackStyle = widget.fallbackStyle ?? theme.fallbackStyle;
     final duration = reduceMotion
         ? Duration.zero
         : const Duration(milliseconds: 180);
     final fallback = widget.scrollEdgeTreatment && _hasScrolledContent
-        ? widget.fallbackStyle.copyWith(
-            surfaceOpacity: (widget.fallbackStyle.surfaceOpacity + 0.025)
+        ? fallbackStyle.copyWith(
+            surfaceOpacity: (fallbackStyle.surfaceOpacity + 0.025)
                 .clamp(0, 1)
                 .toDouble(),
-            shadowStrength: (widget.fallbackStyle.shadowStrength + 0.08)
+            shadowStrength: (fallbackStyle.shadowStrength + 0.08)
                 .clamp(0, 1)
                 .toDouble(),
           )
-        : widget.fallbackStyle;
+        : fallbackStyle;
 
     return Listener(
       onPointerDown: (_) => _restoreForInteraction(),
@@ -151,12 +181,14 @@ class _VitreumGlassBarState extends State<VitreumGlassBar> {
           scale: _minimized ? 0.86 : 1,
           child: VitreumGlass(
             mode: widget.mode,
-            style: widget.style,
-            quality: widget.quality,
+            style: style,
+            quality: quality,
             shape: widget.shape,
             fallbackStyle: fallback,
-            tint: widget.tint,
+            tint: widget.tint ?? (widget.inheritTint ? theme.tint : null),
+            inheritTint: false,
             semanticLabel: widget.semanticLabel,
+            clipBehavior: widget.clipBehavior,
             child: Padding(padding: widget.padding, child: widget.child),
           ),
         ),

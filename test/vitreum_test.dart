@@ -1,9 +1,11 @@
 import 'dart:ui' show FrameTiming;
 
+import 'package:flutter/cupertino.dart' show CupertinoApp;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vitreum/src/core/vitreum_backend_selector.dart';
 import 'package:vitreum/src/debug/vitreum_performance_overlay.dart';
+import 'package:vitreum/src/rendering/solid_glass_renderer.dart';
 import 'package:vitreum/vitreum.dart';
 
 const VitreumCapabilities _androidCapabilities = VitreumCapabilities(
@@ -63,6 +65,56 @@ void main() {
       expect(value.blurSigma, 14);
       expect(value.surfaceOpacity, 1);
       expect(value.refractionStrength, 0);
+    });
+
+    test('edge and shadow values are clamped safely', () {
+      const input = VitreumFallbackStyle(
+        edgeWidth: -2,
+        shadowBlurSigma: double.infinity,
+        shadowOffset: Offset(double.infinity, -80),
+      );
+      final value = input.validated();
+
+      expect(value.edgeWidth, 0);
+      expect(value.shadowBlurSigma, 8);
+      expect(value.shadowOffset, const Offset(0, -40));
+    });
+
+    test('interaction and navigation styles reject unsafe layout values', () {
+      const interaction = VitreumInteractionStyle(
+        pressedScale: double.nan,
+        duration: Duration(seconds: -1),
+        minimumSize: Size(double.infinity, -10),
+      );
+      final interactionValue = interaction.validated();
+      expect(interactionValue.pressedScale, 0.975);
+      expect(interactionValue.duration, const Duration(milliseconds: 120));
+      expect(interactionValue.minimumSize, const Size(48, 0));
+
+      const navigation = VitreumNavigationBarStyle(
+        height: double.infinity,
+        horizontalPadding: -5,
+      );
+      final navigationValue = navigation.validated();
+      expect(navigationValue.height, 64);
+      expect(navigationValue.horizontalPadding, 0);
+    });
+
+    test('nullable widget configuration fields encode theme inheritance', () {
+      const surface = VitreumGlass(child: SizedBox());
+      expect(surface.style, isNull);
+      expect(surface.quality, isNull);
+      expect(surface.fallbackStyle, isNull);
+
+      const configured = VitreumGlass(
+        style: VitreumStyle.clear,
+        quality: VitreumQuality.low,
+        fallbackStyle: VitreumFallbackStyle(blurSigma: 4),
+        child: SizedBox(),
+      );
+      expect(configured.style, VitreumStyle.clear);
+      expect(configured.quality, VitreumQuality.low);
+      expect(configured.fallbackStyle?.blurSigma, 4);
     });
 
     test('shape serializes to channel-safe values', () {
@@ -237,6 +289,164 @@ void main() {
       expect(taps, 1);
     });
 
+    testWidgets('custom zero-blur shadow and wide edge render safely', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 160,
+              height: 56,
+              child: VitreumGlass(
+                mode: VitreumMode.simulated,
+                shape: VitreumShape.capsule(),
+                fallbackStyle: VitreumFallbackStyle(
+                  edgeWidth: 8,
+                  shadowBlurSigma: 0,
+                ),
+                child: SizedBox.expand(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('package theme supplies omitted surface defaults', (
+      tester,
+    ) async {
+      const tint = Color(0xFF336699);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            extensions: const <ThemeExtension<dynamic>>[
+              VitreumThemeData(
+                style: VitreumStyle.clear,
+                quality: VitreumQuality.low,
+                tint: tint,
+              ),
+            ],
+          ),
+          home: const VitreumGlass(
+            mode: VitreumMode.solid,
+            child: SizedBox(width: 100, height: 40),
+          ),
+        ),
+      );
+
+      expect(
+        tester.widget<SolidGlassRenderer>(find.byType(SolidGlassRenderer)).tint,
+        tint,
+      );
+    });
+
+    testWidgets('inherited theme and explicit values follow precedence', (
+      tester,
+    ) async {
+      const materialTint = Color(0xFFAA0000);
+      const inheritedTint = Color(0xFF00AA00);
+      const explicitTint = Color(0xFF0000AA);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            extensions: const <ThemeExtension<dynamic>>[
+              VitreumThemeData(tint: materialTint),
+            ],
+          ),
+          home: const VitreumTheme(
+            data: VitreumThemeData(tint: inheritedTint),
+            child: Column(
+              children: <Widget>[
+                VitreumGlass(
+                  mode: VitreumMode.solid,
+                  child: SizedBox(width: 100, height: 40),
+                ),
+                VitreumGlass(
+                  mode: VitreumMode.solid,
+                  tint: explicitTint,
+                  child: SizedBox(width: 100, height: 40),
+                ),
+                VitreumGlass(
+                  mode: VitreumMode.solid,
+                  inheritTint: false,
+                  child: SizedBox(width: 100, height: 40),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final renderers = tester.widgetList<SolidGlassRenderer>(
+        find.byType(SolidGlassRenderer),
+      );
+      expect(renderers.map((renderer) => renderer.tint), <Color?>[
+        inheritedTint,
+        explicitTint,
+        null,
+      ]);
+    });
+
+    testWidgets('themed high quality enables button pointer tracking', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            extensions: const <ThemeExtension<dynamic>>[
+              VitreumThemeData(quality: VitreumQuality.high),
+            ],
+          ),
+          home: VitreumGlassButton(
+            onPressed: () {},
+            child: const Text('Hover'),
+          ),
+        ),
+      );
+
+      final mouseRegions = tester.widgetList<MouseRegion>(
+        find.descendant(
+          of: find.byType(VitreumGlassButton),
+          matching: find.byType(MouseRegion),
+        ),
+      );
+      expect(mouseRegions.any((region) => region.onHover != null), isTrue);
+    });
+
+    testWidgets('clip behavior controls the child but keeps glass bounded', (
+      tester,
+    ) async {
+      Future<void> pumpSurface(Clip clipBehavior) => tester.pumpWidget(
+        MaterialApp(
+          home: VitreumGlass(
+            mode: VitreumMode.solid,
+            shape: const VitreumShape.capsule(),
+            clipBehavior: clipBehavior,
+            child: const SizedBox(width: 120, height: 48),
+          ),
+        ),
+      );
+
+      await pumpSurface(Clip.none);
+      var clips = find.descendant(
+        of: find.byType(VitreumGlass),
+        matching: find.byType(ClipPath),
+      );
+      expect(clips, findsOneWidget);
+
+      await pumpSurface(Clip.hardEdge);
+      clips = find.descendant(
+        of: find.byType(VitreumGlass),
+        matching: find.byType(ClipPath),
+      );
+      expect(clips, findsNWidgets(2));
+    });
+
     testWidgets('button enforces an accessible minimum target', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -252,6 +462,28 @@ void main() {
       expect(
         tester.getSize(find.byType(VitreumGlassButton)).shortestSide,
         greaterThanOrEqualTo(48),
+      );
+    });
+
+    testWidgets('inherited theme works without a Material theme extension', (
+      tester,
+    ) async {
+      const tint = Color(0xFF446688);
+      await tester.pumpWidget(
+        const CupertinoApp(
+          home: VitreumTheme(
+            data: VitreumThemeData(tint: tint),
+            child: VitreumGlass(
+              mode: VitreumMode.solid,
+              child: SizedBox(width: 100, height: 40),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        tester.widget<SolidGlassRenderer>(find.byType(SolidGlassRenderer)).tint,
+        tint,
       );
     });
 
@@ -335,6 +567,73 @@ void main() {
       await tester.pump();
       expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, 1);
       await gesture.up();
+    });
+
+    testWidgets('button interaction style controls pressed scale', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: VitreumGlassButton(
+              onPressed: () {},
+              interactionStyle: const VitreumInteractionStyle(
+                pressedScale: 0.9,
+                duration: Duration.zero,
+              ),
+              child: const Text('Press'),
+            ),
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Press')),
+      );
+      await tester.pump();
+      expect(
+        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale,
+        0.9,
+      );
+      await gesture.up();
+    });
+
+    testWidgets('navigation appearance controls dimensions and colors', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 360,
+              child: VitreumGlassNavigationBar(
+                selectedIndex: 0,
+                onDestinationSelected: (_) {},
+                navigationStyle: const VitreumNavigationBarStyle(
+                  height: 72,
+                  iconSize: 20,
+                  selectedColor: Colors.amber,
+                ),
+                destinations: const <VitreumNavigationDestination>[
+                  VitreumNavigationDestination(
+                    icon: Icons.home_outlined,
+                    label: 'Home',
+                  ),
+                  VitreumNavigationDestination(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.getSize(find.byType(VitreumGlassNavigationBar)).height, 72);
+      final firstIcon = tester.widget<Icon>(find.byType(Icon).first);
+      expect(firstIcon.size, 20);
+      expect(firstIcon.color, Colors.amber);
     });
 
     testWidgets('materialize transition is offstage when hidden', (

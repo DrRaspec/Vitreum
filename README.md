@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.1.2" src="https://img.shields.io/badge/version-0.1.2-7C83FF" />
-  <img alt="Flutter 3.35+" src="https://img.shields.io/badge/Flutter-3.35%2B-54C5F8?logo=flutter&logoColor=white" />
+  <img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-7C83FF" />
+  <img alt="Flutter 3.44+" src="https://img.shields.io/badge/Flutter-3.44%2B-54C5F8?logo=flutter&logoColor=white" />
   <img alt="Platforms iOS and Android" src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android-101526" />
   <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-6DD5B5" />
 </p>
@@ -78,6 +78,11 @@ or browse the
 
 ## Compatibility
 
+Vitreum 0.2.0 requires Flutter 3.44 or newer and Dart 3.12.1 or newer. iOS
+builds require Xcode 26 and the iOS 26 SDK because the plugin compiles against
+the public `UIGlassEffect` API. The deployment target remains iOS 13; iOS
+13–25 devices use the Flutter simulation at runtime.
+
 | Platform                | Renderer                                   | Current status                                           |
 | ----------------------- | ------------------------------------------ | -------------------------------------------------------- |
 | iOS 26+                 | Flutter default; scoped native overlay     | One native overlay validated; multiple views failed      |
@@ -91,7 +96,7 @@ Add Vitreum to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  vitreum: ^0.1.2
+  vitreum: ^0.2.0
 ```
 
 Then fetch dependencies:
@@ -173,6 +178,105 @@ VitreumGlass(
   ),
 )
 ```
+
+Configuration at a glance:
+
+| Property | Purpose | Default when no theme is installed |
+|---|---|---|
+| `mode` | Backend selection | `automatic` |
+| `style` | Regular or clear material | `regular` |
+| `quality` | Simulated rendering cost/detail | `adaptive` |
+| `shape` | Rounded rectangle, capsule, or circle | 24-radius rectangle |
+| `tint` | Optional surface color | No explicit tint |
+| `inheritTint` | Uses the theme tint when `tint` is null | `true` |
+| `interactive` | Native and simulated optical interaction | `false` |
+| `fallbackStyle` | Simulated optical parameters | `VitreumFallbackStyle()` |
+| `clipBehavior` | Flutter-child clipping | `Clip.antiAlias` |
+| `semanticLabel` | Optional accessibility label | None |
+| `enabled` | Selects the solid backend when false | `true` |
+
+### Child clipping
+
+Glass surfaces clip their Flutter child to the selected shape by default. This
+keeps text fields, ink effects, images, and selection highlights inside the
+glass boundary on every backend:
+
+```dart
+VitreumNativeGlassOverlay(
+  style: VitreumStyle.clear,
+  shape: const VitreumShape.capsule(),
+  clipBehavior: Clip.antiAlias,
+  child: const TextField(
+    decoration: InputDecoration(
+      hintText: 'Type a message',
+      border: InputBorder.none,
+    ),
+  ),
+)
+```
+
+Set `clipBehavior: Clip.none` only when the child intentionally needs to paint
+outside the glass. The glass surface itself remains shape-clipped.
+
+### Package-wide theme
+
+Install `VitreumThemeData` as a standard Flutter theme extension to provide
+defaults for all Vitreum widgets in a Material application. A value supplied
+directly to a widget takes precedence:
+
+```dart
+MaterialApp(
+  theme: ThemeData(
+    extensions: const [
+      VitreumThemeData(
+        style: VitreumStyle.clear,
+        quality: VitreumQuality.balanced,
+        tint: Color(0x338C9EFF),
+        fallbackStyle: VitreumFallbackStyle(
+          blurSigma: 18,
+          edgeWidth: 1.25,
+          edgeColor: Color(0xFFE8EEFF),
+          shadowBlurSigma: 10,
+          shadowOffset: Offset(0, 4),
+        ),
+      ),
+    ],
+  ),
+  home: const MyApp(),
+)
+```
+
+For `CupertinoApp` and non-Material widget trees, wrap the app content:
+
+```dart
+CupertinoApp(
+  builder: (context, child) => VitreumTheme(
+    data: const VitreumThemeData(
+      style: VitreumStyle.clear,
+      quality: VitreumQuality.balanced,
+    ),
+    child: child ?? const SizedBox.shrink(),
+  ),
+  home: const HomePage(),
+)
+```
+
+`VitreumFallbackStyle` is never applied to native iOS glass. Its optical
+settings control simulated rendering; the solid accessibility fallback ignores
+surface opacity, blur, refraction, highlights, edge lighting, and shadow
+settings. Native iOS glass supports Apple's public style, tint, shape, and
+interaction controls only.
+
+See the
+[complete customization reference](https://github.com/DrRaspec/Vitreum/blob/main/doc/customization.md)
+for precedence, defaults, safe ranges, backend support, and examples.
+
+### Control appearance
+
+Use `VitreumInteractionStyle` to tune button motion, feedback, and minimum
+target size. Use `VitreumNavigationBarStyle` to tune navigation height,
+spacing, icon and label sizes, foreground colors, and indicator colors. Both
+can be supplied per widget or through `VitreumThemeData`.
 
 ### Glass button
 
@@ -338,7 +442,8 @@ high-contrast contexts also select solid rendering.
 - Give meaningful controls a `semanticLabel`.
 - Keep essential text contrast independent of the background.
 - Test large text and focus navigation.
-- Glass buttons preserve a minimum 48 logical-pixel touch target.
+- Glass buttons use a minimum 48 logical-pixel touch target by default. Keep
+  custom `minimumSize` values accessible.
 - Press animations respect disabled-animation settings.
 
 ## Performance
@@ -421,8 +526,21 @@ platform selects the readable solid fallback.
 <details>
 <summary><strong>High quality looks like balanced</strong></summary>
 
-The optional refraction shader is not enabled in 0.1.2. High quality safely
-resolves to balanced when shader support is unavailable.
+High quality selects the optional Impeller filter only when runtime shader
+filters are supported. Unsupported renderers and shader-load failures safely
+retain the bounded balanced renderer.
+
+</details>
+
+<details>
+<summary><strong>A short line appears at the glass edge</strong></summary>
+
+First confirm the active backend. For simulated glass, set `edgeWidth: 0` or
+`borderOpacity: 0` to distinguish edge lighting from child content. For native
+iOS glass, the system owns optical edge rendering; ensure the route contains
+only one `VitreumNativeGlassOverlay`, as multiple platform-view overlays are
+not supported. Keep `clipBehavior` enabled when child content must remain
+inside the shape.
 
 </details>
 

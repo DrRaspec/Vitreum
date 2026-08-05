@@ -1,11 +1,11 @@
 Pod::Spec.new do |s|
   s.name             = 'vitreum'
-  s.version          = '0.1.0'
+  s.version          = '0.2.0'
   s.summary          = 'Adaptive native and simulated glass surfaces for Flutter.'
   s.description      = 'Public Apple Liquid Glass APIs where validated, with a Flutter fallback.'
-  s.homepage         = 'https://github.com/example/vitreum'
+  s.homepage         = 'https://github.com/DrRaspec/Vitreum'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Vitreum contributors' => 'maintainers@example.invalid' }
+  s.author           = 'Vitreum contributors'
   s.source           = { :path => '.' }
   s.source_files     = 'vitreum/Sources/vitreum/**/*'
   s.dependency 'Flutter'

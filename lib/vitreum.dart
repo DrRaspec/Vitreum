@@ -6,9 +6,13 @@ export 'src/core/vitreum_backend.dart'
 export 'src/core/vitreum_capabilities.dart' show VitreumCapabilities;
 export 'src/core/vitreum_config.dart'
     show Vitreum, VitreumDebugOptions, VitreumFallbackStyle;
+export 'src/core/vitreum_interaction_style.dart' show VitreumInteractionStyle;
+export 'src/core/vitreum_navigation_bar_style.dart'
+    show VitreumNavigationBarStyle;
 export 'src/core/vitreum_quality.dart' show VitreumQuality;
 export 'src/core/vitreum_shape.dart' show VitreumShape, VitreumShapeKind;
 export 'src/core/vitreum_style.dart' show VitreumStyle;
+export 'src/core/vitreum_theme.dart' show VitreumTheme, VitreumThemeData;
 export 'src/core/vitreum_transition.dart' show VitreumTransitionType;
 export 'src/debug/vitreum_performance_overlay.dart'
     show VitreumPerformanceOverlay, VitreumPerformanceSnapshot;

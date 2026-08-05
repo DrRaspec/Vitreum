@@ -21,6 +21,12 @@ so blur quality, contrast, and fallback behavior remain visible.
 - A separate diagnostics tab with exact backend capability fields
 - Pure-native, native-over-Flutter, and simulated comparison scenes
 - A configurable simulated-renderer stress test
+- Shape-aware child clipping and package-wide customization APIs
+
+The application uses `CupertinoApp`. For application-wide Vitreum defaults,
+wrap its builder output with `VitreumTheme`; Material applications can instead
+install `VitreumThemeData` through `ThemeData.extensions`. See the
+[customization reference](https://github.com/DrRaspec/Vitreum/blob/main/doc/customization.md).
 
 Launch a diagnostic directly:
 

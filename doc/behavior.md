@@ -11,7 +11,7 @@ References:
 - [Build a UIKit app with the new design](https://developer.apple.com/videos/play/wwdc2025/284/)
 - [Motion guidelines](https://developer.apple.com/design/human-interface-guidelines/motion)
 
-## Vitreum timing values
+## Default Vitreum timing values
 
 | Behavior | Vitreum value | Curve |
 |---|---:|---|
@@ -24,7 +24,9 @@ References:
 
 Animations remain interruptible because their target values update through
 Flutter's implicit animations. Reduce Motion replaces flex and material scale
-with immediate or opacity-only changes.
+with immediate or opacity-only changes. Button flex duration, curve, scale,
+highlight boost, shadow factor, and minimum target size can be customized with
+`VitreumInteractionStyle`; see [Customization](customization.md).
 
 ## Quality degradation
 

@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import '../core/vitreum_backend.dart';
 import '../core/vitreum_config.dart';
 import '../core/vitreum_interaction.dart';
+import '../core/vitreum_interaction_style.dart';
 import '../core/vitreum_quality.dart';
 import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
+import '../core/vitreum_theme.dart';
 import 'vitreum_glass.dart';
 
 /// An accessible glass button with restrained touch, pointer, and focus
@@ -16,26 +18,57 @@ class VitreumGlassButton extends StatefulWidget {
     required this.onPressed,
     required this.child,
     this.mode = VitreumMode.automatic,
-    this.style = VitreumStyle.regular,
-    this.quality = VitreumQuality.adaptive,
+    this.style,
+    this.quality,
     this.shape = const VitreumShape.capsule(),
-    this.fallbackStyle = const VitreumFallbackStyle(),
+    this.fallbackStyle,
     this.tint,
+    this.inheritTint = true,
     this.semanticLabel,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+    this.interactionStyle,
+    this.clipBehavior = Clip.antiAlias,
     super.key,
   });
 
+  /// Called when activated. A null callback disables the button.
   final VoidCallback? onPressed;
+
+  /// Button content.
   final Widget child;
+
+  /// Requested backend-selection mode.
   final VitreumMode mode;
-  final VitreumStyle style;
-  final VitreumQuality quality;
+
+  /// Material style, or null to inherit from [VitreumThemeData].
+  final VitreumStyle? style;
+
+  /// Simulation quality, or null to inherit from [VitreumThemeData].
+  final VitreumQuality? quality;
+
+  /// Button surface and clipping geometry.
   final VitreumShape shape;
-  final VitreumFallbackStyle fallbackStyle;
+
+  /// Fallback configuration, or null to inherit from [VitreumThemeData].
+  final VitreumFallbackStyle? fallbackStyle;
+
+  /// Optional tint, with theme fallback.
   final Color? tint;
+
+  /// Whether a null [tint] inherits the theme tint.
+  final bool inheritTint;
+
+  /// Optional accessibility label.
   final String? semanticLabel;
+
+  /// Empty space around [child].
   final EdgeInsetsGeometry padding;
+
+  /// Feedback configuration, or null to inherit from [VitreumThemeData].
+  final VitreumInteractionStyle? interactionStyle;
+
+  /// How the Flutter child is clipped to [shape].
+  final Clip clipBehavior;
 
   @override
   State<VitreumGlassButton> createState() => _VitreumGlassButtonState();
@@ -58,6 +91,12 @@ class _VitreumGlassButtonState extends State<VitreumGlassButton> {
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final theme = VitreumThemeData.of(context);
+    final style = widget.style ?? theme.style;
+    final quality = widget.quality ?? theme.quality;
+    final fallbackStyle = widget.fallbackStyle ?? theme.fallbackStyle;
+    final interactionStyle = widget.interactionStyle ?? theme.interactionStyle;
+    final interactionValues = interactionStyle.validated();
     final enabled = widget.onPressed != null;
     final interaction = VitreumInteractionData(
       pressed: _pressed,
@@ -87,7 +126,7 @@ class _VitreumGlassButtonState extends State<VitreumGlassButton> {
           ),
         },
         child: MouseRegion(
-          onHover: widget.quality == VitreumQuality.high
+          onHover: quality == VitreumQuality.high
               ? (event) =>
                     setState(() => _interactionPosition = event.localPosition)
               : null,
@@ -102,29 +141,39 @@ class _VitreumGlassButtonState extends State<VitreumGlassButton> {
             child: AnimatedScale(
               duration: reduceMotion
                   ? Duration.zero
-                  : const Duration(milliseconds: 120),
-              curve: Curves.easeOutCubic,
-              scale: _pressed && !reduceMotion ? 0.975 : 1,
+                  : interactionValues.duration,
+              curve: interactionValues.curve,
+              scale: _pressed && !reduceMotion
+                  ? interactionValues.pressedScale
+                  : 1,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                constraints: BoxConstraints(
+                  minWidth: interactionValues.minimumSize.width,
+                  minHeight: interactionValues.minimumSize.height,
+                ),
                 child: VitreumInteractionScope(
                   data: interaction,
                   child: VitreumGlass(
                     mode: widget.mode,
-                    style: widget.style,
-                    quality: widget.quality,
+                    style: style,
+                    quality: quality,
                     shape: widget.shape,
-                    tint: widget.tint,
+                    tint:
+                        widget.tint ?? (widget.inheritTint ? theme.tint : null),
+                    inheritTint: false,
                     interactive: true,
-                    fallbackStyle: widget.fallbackStyle.copyWith(
+                    clipBehavior: widget.clipBehavior,
+                    fallbackStyle: fallbackStyle.copyWith(
                       highlightStrength: _pressed
-                          ? (widget.fallbackStyle.highlightStrength + 0.12)
+                          ? (fallbackStyle.highlightStrength +
+                                    interactionValues.pressedHighlightBoost)
                                 .clamp(0, 1)
                                 .toDouble()
-                          : widget.fallbackStyle.highlightStrength,
+                          : fallbackStyle.highlightStrength,
                       shadowStrength: _pressed
-                          ? widget.fallbackStyle.shadowStrength * 0.76
-                          : widget.fallbackStyle.shadowStrength,
+                          ? fallbackStyle.shadowStrength *
+                                interactionValues.pressedShadowFactor
+                          : fallbackStyle.shadowStrength,
                     ),
                     child: Padding(
                       padding: widget.padding,

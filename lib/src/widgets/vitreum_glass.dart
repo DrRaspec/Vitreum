@@ -10,41 +10,72 @@ import '../core/vitreum_interaction.dart';
 import '../core/vitreum_quality.dart';
 import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
+import '../core/vitreum_theme.dart';
 import '../platform/vitreum_method_channel.dart';
 import '../rendering/flutter_glass_renderer.dart';
 import '../rendering/solid_glass_renderer.dart';
 import 'vitreum_glass_group.dart';
+import 'vitreum_shape_clip.dart';
 
 /// A bounded adaptive glass surface rendered behind [child].
 class VitreumGlass extends StatefulWidget {
   const VitreumGlass({
     required this.child,
     this.mode = VitreumMode.automatic,
-    this.style = VitreumStyle.regular,
-    this.quality = VitreumQuality.adaptive,
+    this.style,
+    this.quality,
     this.shape = const VitreumShape.roundedRectangle(),
     this.tint,
+    this.inheritTint = true,
     this.interactive = false,
-    this.fallbackStyle = const VitreumFallbackStyle(),
+    this.fallbackStyle,
     this.debugOptions = const VitreumDebugOptions(),
     this.semanticLabel,
     this.enabled = true,
+    this.clipBehavior = Clip.antiAlias,
     super.key,
   });
 
+  /// Flutter content painted above the glass surface.
   final Widget child;
+
+  /// Requested backend-selection mode.
   final VitreumMode mode;
-  final VitreumStyle style;
-  final VitreumQuality quality;
+
+  /// Material style, or null to inherit from [VitreumThemeData].
+  final VitreumStyle? style;
+
+  /// Simulation quality, or null to inherit from [VitreumThemeData].
+  final VitreumQuality? quality;
+
+  /// Geometry shared by the surface and child clip.
   final VitreumShape shape;
+
+  /// Optional tint. When null, the theme tint is used if configured.
   final Color? tint;
+
+  /// Whether a null [tint] inherits the theme tint.
+  final bool inheritTint;
+
+  /// Whether the selected renderer should enable optical interaction.
   final bool interactive;
-  final VitreumFallbackStyle fallbackStyle;
+
+  /// Fallback configuration, or null to inherit from [VitreumThemeData].
+  final VitreumFallbackStyle? fallbackStyle;
+
+  /// Optional diagnostic overlays and logging.
   final VitreumDebugOptions debugOptions;
+
+  /// Optional semantic label for the surface container.
   final String? semanticLabel;
 
   /// When false, renders the solid backend without an effect.
   final bool enabled;
+
+  /// How the Flutter child is clipped to [shape].
+  ///
+  /// The glass surface itself always remains bounded to the shape.
+  final Clip clipBehavior;
 
   @override
   State<VitreumGlass> createState() => _VitreumGlassState();
@@ -71,9 +102,14 @@ class _VitreumGlassState extends State<VitreumGlass> {
   Widget build(BuildContext context) {
     final media = MediaQuery.maybeOf(context);
     final grouped = VitreumGlassGroup.maybeOf(context);
+    final theme = VitreumThemeData.of(context);
+    final style = widget.style ?? theme.style;
+    final quality = widget.quality ?? theme.quality;
+    final fallbackStyle = widget.fallbackStyle ?? theme.fallbackStyle;
+    final tint = widget.tint ?? (widget.inheritTint ? theme.tint : null);
     var backend = selectVitreumBackend(
       mode: widget.enabled ? widget.mode : VitreumMode.solid,
-      quality: widget.quality,
+      quality: quality,
       capabilities: _capabilities,
       reduceTransparency: media?.highContrast ?? false,
     );
@@ -83,7 +119,7 @@ class _VitreumGlassState extends State<VitreumGlass> {
     if (backend == VitreumBackend.nativeIOS && grouped) {
       backend = selectVitreumBackend(
         mode: VitreumMode.simulated,
-        quality: widget.quality,
+        quality: quality,
         capabilities: _capabilities,
         reduceTransparency: media?.highContrast ?? false,
       );
@@ -98,27 +134,30 @@ class _VitreumGlassState extends State<VitreumGlass> {
     Widget result = switch (backend) {
       VitreumBackend.nativeIOS => _NativeGlass(
         shape: widget.shape,
-        style: widget.style,
-        tint: widget.tint,
+        style: style,
+        tint: tint,
         interactive: widget.interactive,
+        clipBehavior: widget.clipBehavior,
         child: widget.child,
       ),
       VitreumBackend.solid => SolidGlassRenderer(
         shape: widget.shape,
-        fallbackStyle: widget.fallbackStyle,
-        tint: widget.tint,
+        fallbackStyle: fallbackStyle,
+        tint: tint,
+        clipBehavior: widget.clipBehavior,
         child: widget.child,
       ),
       _ => FlutterGlassRenderer(
         shape: widget.shape,
-        style: widget.style,
-        fallbackStyle: widget.fallbackStyle,
+        style: style,
+        fallbackStyle: fallbackStyle,
         backend: backend,
-        tint: widget.tint,
+        tint: tint,
         grouped: grouped,
         mergeSpacing: VitreumGlassGroup.mergeSpacingOf(context),
         interaction: VitreumInteractionScope.of(context),
         reduceMotion: media?.disableAnimations ?? false,
+        clipBehavior: widget.clipBehavior,
         child: widget.child,
       ),
     };
@@ -190,6 +229,7 @@ class _NativeGlass extends StatelessWidget {
     required this.style,
     required this.tint,
     required this.interactive,
+    required this.clipBehavior,
   });
 
   final Widget child;
@@ -197,6 +237,7 @@ class _NativeGlass extends StatelessWidget {
   final VitreumStyle style;
   final Color? tint;
   final bool interactive;
+  final Clip clipBehavior;
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +262,11 @@ class _NativeGlass extends StatelessWidget {
             ),
           ),
         ),
-        child,
+        VitreumShapeClip(
+          shape: shape,
+          clipBehavior: clipBehavior,
+          child: child,
+        ),
       ],
     );
   }

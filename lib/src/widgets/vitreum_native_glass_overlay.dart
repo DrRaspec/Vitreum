@@ -7,8 +7,10 @@ import '../core/vitreum_config.dart';
 import '../core/vitreum_quality.dart';
 import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
+import '../core/vitreum_theme.dart';
 import '../platform/vitreum_method_channel.dart';
 import 'vitreum_glass.dart';
+import 'vitreum_shape_clip.dart';
 
 /// A deliberately specialized, bounded native iOS glass overlay.
 ///
@@ -19,24 +21,47 @@ import 'vitreum_glass.dart';
 class VitreumNativeGlassOverlay extends StatefulWidget {
   const VitreumNativeGlassOverlay({
     required this.child,
-    this.style = VitreumStyle.regular,
-    this.quality = VitreumQuality.adaptive,
+    this.style,
+    this.quality,
     this.shape = const VitreumShape.roundedRectangle(),
     this.tint,
+    this.inheritTint = true,
     this.interactive = false,
-    this.fallbackStyle = const VitreumFallbackStyle(),
+    this.fallbackStyle,
     this.semanticLabel,
+    this.clipBehavior = Clip.antiAlias,
     super.key,
   });
 
+  /// Flutter content painted above the native or simulated glass.
   final Widget child;
-  final VitreumStyle style;
-  final VitreumQuality quality;
+
+  /// Material style, or null to inherit from [VitreumThemeData].
+  final VitreumStyle? style;
+
+  /// Simulation quality used after fallback, or null to inherit.
+  final VitreumQuality? quality;
+
+  /// Geometry shared by the native surface and Flutter child clip.
   final VitreumShape shape;
+
+  /// Optional native or simulated tint, with theme fallback.
   final Color? tint;
+
+  /// Whether a null [tint] inherits the theme tint.
+  final bool inheritTint;
+
+  /// Whether supported native and simulated interaction is enabled.
   final bool interactive;
-  final VitreumFallbackStyle fallbackStyle;
+
+  /// Simulated fallback configuration, or null to inherit.
+  final VitreumFallbackStyle? fallbackStyle;
+
+  /// Optional semantic label for the surface container.
   final String? semanticLabel;
+
+  /// How the Flutter child is clipped to [shape].
+  final Clip clipBehavior;
 
   @override
   State<VitreumNativeGlassOverlay> createState() =>
@@ -58,6 +83,11 @@ class _VitreumNativeGlassOverlayState extends State<VitreumNativeGlassOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = VitreumThemeData.of(context);
+    final style = widget.style ?? theme.style;
+    final quality = widget.quality ?? theme.quality;
+    final fallbackStyle = widget.fallbackStyle ?? theme.fallbackStyle;
+    final tint = widget.tint ?? (widget.inheritTint ? theme.tint : null);
     final useNative =
         !kIsWeb &&
         defaultTargetPlatform == TargetPlatform.iOS &&
@@ -70,13 +100,15 @@ class _VitreumNativeGlassOverlayState extends State<VitreumNativeGlassOverlay> {
     if (!useNative) {
       return VitreumGlass(
         mode: VitreumMode.simulated,
-        style: widget.style,
-        quality: widget.quality,
+        style: style,
+        quality: quality,
         shape: widget.shape,
-        tint: widget.tint,
+        tint: tint,
+        inheritTint: false,
         interactive: widget.interactive,
-        fallbackStyle: widget.fallbackStyle,
+        fallbackStyle: fallbackStyle,
         semanticLabel: widget.semanticLabel,
+        clipBehavior: widget.clipBehavior,
         child: widget.child,
       );
     }
@@ -93,15 +125,19 @@ class _VitreumNativeGlassOverlayState extends State<VitreumNativeGlassOverlay> {
                 viewType: 'dev.vitreum/native_glass',
                 creationParams: <String, Object?>{
                   'shape': widget.shape.toMap(),
-                  'style': widget.style.name,
+                  'style': style.name,
                   'interactive': widget.interactive,
-                  'tint': widget.tint?.toARGB32(),
+                  'tint': tint?.toARGB32(),
                 },
                 creationParamsCodec: const StandardMessageCodec(),
               ),
             ),
           ),
-          widget.child,
+          VitreumShapeClip(
+            shape: widget.shape,
+            clipBehavior: widget.clipBehavior,
+            child: widget.child,
+          ),
         ],
       ),
     );

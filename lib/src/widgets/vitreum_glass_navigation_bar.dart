@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../core/vitreum_backend.dart';
 import '../core/vitreum_config.dart';
+import '../core/vitreum_navigation_bar_style.dart';
 import '../core/vitreum_quality.dart';
 import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
+import '../core/vitreum_theme.dart';
 import 'vitreum_glass.dart';
 
 /// A destination displayed by [VitreumGlassNavigationBar].
@@ -12,7 +14,10 @@ import 'vitreum_glass.dart';
 class VitreumNavigationDestination {
   const VitreumNavigationDestination({required this.icon, required this.label});
 
+  /// Icon displayed for the destination.
   final IconData icon;
+
+  /// Visible and semantic destination label.
   final String label;
 }
 
@@ -27,20 +32,53 @@ class VitreumGlassNavigationBar extends StatefulWidget {
     required this.destinations,
     required this.selectedIndex,
     required this.onDestinationSelected,
-    this.style = VitreumStyle.regular,
-    this.quality = VitreumQuality.adaptive,
-    this.fallbackStyle = const VitreumFallbackStyle(),
+    this.style,
+    this.quality,
+    this.fallbackStyle,
+    this.navigationStyle,
+    this.shape = const VitreumShape.capsule(),
+    this.tint,
+    this.inheritTint = true,
+    this.clipBehavior = Clip.antiAlias,
     this.showDebugBounds = false,
     super.key,
   }) : assert(destinations.length >= 2),
        assert(selectedIndex >= 0 && selectedIndex < destinations.length);
 
+  /// Destinations displayed from left to right.
   final List<VitreumNavigationDestination> destinations;
+
+  /// Index of the currently selected destination.
   final int selectedIndex;
+
+  /// Called with the index of an activated destination.
   final ValueChanged<int> onDestinationSelected;
-  final VitreumStyle style;
-  final VitreumQuality quality;
-  final VitreumFallbackStyle fallbackStyle;
+
+  /// Material style, or null to inherit from [VitreumThemeData].
+  final VitreumStyle? style;
+
+  /// Simulation quality, or null to inherit from [VitreumThemeData].
+  final VitreumQuality? quality;
+
+  /// Fallback configuration, or null to inherit from [VitreumThemeData].
+  final VitreumFallbackStyle? fallbackStyle;
+
+  /// Layout and colors, or null to inherit from [VitreumThemeData].
+  final VitreumNavigationBarStyle? navigationStyle;
+
+  /// Navigation surface and clipping geometry.
+  final VitreumShape shape;
+
+  /// Optional tint, with theme fallback.
+  final Color? tint;
+
+  /// Whether a null [tint] inherits the theme tint.
+  final bool inheritTint;
+
+  /// How navigation content is clipped to [shape].
+  final Clip clipBehavior;
+
+  /// Whether to draw a diagnostic rectangle around the widget bounds.
   final bool showDebugBounds;
 
   @override
@@ -53,14 +91,22 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = VitreumThemeData.of(context);
+    final style = widget.style ?? theme.style;
+    final quality = widget.quality ?? theme.quality;
+    final fallbackStyle = widget.fallbackStyle ?? theme.fallbackStyle;
+    final navigationStyle = widget.navigationStyle ?? theme.navigationBarStyle;
+    final navigationValues = navigationStyle.validated();
     final content = SizedBox(
-      height: 64,
+      height: navigationValues.height,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: navigationValues.horizontalPadding,
+        ),
         child: Row(
           children: List<Widget>.generate(
             widget.destinations.length,
-            _destination,
+            (index) => _destination(index, navigationValues),
           ),
         ),
       ),
@@ -68,11 +114,14 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
 
     final surface = VitreumGlass(
       mode: VitreumMode.simulated,
-      shape: const VitreumShape.capsule(),
-      style: widget.style,
-      quality: widget.quality,
-      fallbackStyle: widget.fallbackStyle,
+      shape: widget.shape,
+      style: style,
+      quality: quality,
+      fallbackStyle: fallbackStyle,
+      tint: widget.tint ?? (widget.inheritTint ? theme.tint : null),
+      inheritTint: false,
       semanticLabel: 'Simulated primary navigation',
+      clipBehavior: widget.clipBehavior,
       child: content,
     );
 
@@ -88,13 +137,11 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
     );
   }
 
-  Widget _destination(int index) {
+  Widget _destination(int index, VitreumNavigationBarStyle style) {
     final destination = widget.destinations[index];
     final selected = widget.selectedIndex == index;
     final pressed = _pressedIndex == index;
-    final foreground = selected
-        ? Colors.white.withValues(alpha: 0.94)
-        : Colors.white.withValues(alpha: 0.58);
+    final foreground = selected ? style.selectedColor : style.unselectedColor;
 
     return Expanded(
       child: Semantics(
@@ -110,7 +157,10 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
           onTap: () => widget.onDestinationSelected(index),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 88, minHeight: 44),
+              constraints: BoxConstraints(
+                minWidth: style.destinationMinWidth,
+                minHeight: style.destinationMinHeight,
+              ),
               child: AnimatedScale(
                 scale: pressed ? 0.975 : (selected ? 1.035 : 1),
                 duration: const Duration(milliseconds: 100),
@@ -120,23 +170,25 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     AnimatedContainer(
-                      width: 36,
-                      height: 36,
+                      width: style.indicatorSize,
+                      height: style.indicatorSize,
                       duration: const Duration(milliseconds: 140),
                       curve: Curves.easeOutCubic,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withValues(
-                          alpha: pressed ? 0.10 : (selected ? 0.05 : 0),
-                        ),
+                        color: pressed
+                            ? style.pressedIndicatorColor
+                            : selected
+                            ? style.indicatorColor
+                            : Colors.transparent,
                       ),
                       child: Icon(
                         destination.icon,
-                        size: 24,
+                        size: style.iconSize,
                         color: foreground,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: style.itemSpacing),
                     Flexible(
                       child: Text(
                         destination.label,
@@ -145,7 +197,7 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
                         softWrap: false,
                         style: TextStyle(
                           color: foreground,
-                          fontSize: 13,
+                          fontSize: style.labelFontSize,
                           fontWeight: selected
                               ? FontWeight.w600
                               : FontWeight.w500,

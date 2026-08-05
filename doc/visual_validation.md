@@ -27,7 +27,7 @@ cannot be confused.
 
 | Pure native UIKit | Native over Flutter | Flutter simulated |
 |---|---|---|
-| ![Pure native UIKit diagnostic](assets/diagnostic-pure-native.png) | ![Native glass over Flutter diagnostic](assets/diagnostic-native-over-flutter.png) | ![Flutter simulated diagnostic](assets/diagnostic-flutter-simulated.png) |
+| ![Pure native UIKit diagnostic](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/diagnostic-pure-native.png) | ![Native glass over Flutter diagnostic](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/diagnostic-native-over-flutter.png) | ![Flutter simulated diagnostic](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/diagnostic-flutter-simulated.png) |
 
 The first scene keeps the animated gradient, stripes, text, and
 `UIVisualEffectView` in one native hierarchy. The second places the same native
@@ -52,7 +52,7 @@ single native overlay topology described above.
 
 | Simulated: search and orange | Simulated: blue after scroll | Diagnostics selected | Validated native overlay |
 |---|---|---|---|
-| ![Simulated search and navigation over orange content](assets/showcase-simulated-top-orange.png) | ![Simulated navigation over blue content after scrolling](assets/showcase-simulated-nav-blue.png) | ![Diagnostics destination selected](assets/showcase-diagnostics-selected.png) | ![Single validated native navigation overlay](assets/showcase-native-single-overlay.png) |
+| ![Simulated search and navigation over orange content](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/showcase-simulated-top-orange.png) | ![Simulated navigation over blue content after scrolling](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/showcase-simulated-nav-blue.png) | ![Diagnostics destination selected](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/showcase-diagnostics-selected.png) | ![Single validated native navigation overlay](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/showcase-native-single-overlay.png) |
 
 ## System tab-bar reference
 
@@ -62,12 +62,12 @@ unmodified `UITabBarController`.
 
 | System UIKit content | System tab bar with Flutter content | Vitreum simulated comparison |
 |---|---|---|
-| ![UITabBarController with native scrolling content](assets/system-uitabbarcontroller-native.png) | ![UITabBarController hosting FlutterEngineGroup pages](assets/system-uitabbarcontroller-flutter.png) | ![Cross-platform Vitreum simulated tab bar](assets/vitreum-simulated-tabbar-comparison.png) |
+| ![UITabBarController with native scrolling content](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-native.png) | ![UITabBarController hosting FlutterEngineGroup pages](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-flutter.png) | ![Cross-platform Vitreum simulated tab bar](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-simulated-tabbar-comparison.png) |
 
 Recordings:
 
-- [System selection, minimization, expansion, and backdrop validation](assets/system-uitabbarcontroller-selection-scroll.mp4)
-- [Vitreum simulated selection and scrolling comparison](assets/vitreum-simulated-tabbar-comparison.mp4)
+- [System selection, minimization, expansion, and backdrop validation](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/system-uitabbarcontroller-selection-scroll.mp4)
+- [Vitreum simulated selection and scrolling comparison](https://raw.githubusercontent.com/DrRaspec/Vitreum/main/doc/assets/vitreum-simulated-tabbar-comparison.mp4)
 
 ## Observable comparison
 
