@@ -36,7 +36,7 @@ class VitreumThemeData extends ThemeExtension<VitreumThemeData> {
   /// Default feedback configuration for interactive controls.
   final VitreumInteractionStyle interactionStyle;
 
-  /// Default appearance for simulated navigation bars.
+  /// Default appearance for Flutter-owned navigation bars.
   final VitreumNavigationBarStyle navigationBarStyle;
 
   /// Returns the nearest Vitreum theme or the package defaults.

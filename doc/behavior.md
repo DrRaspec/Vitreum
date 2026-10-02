@@ -50,18 +50,33 @@ of Apple's private merge renderer.
 
 ## Scroll behavior
 
-`VitreumGlassBar` can listen to a `ScrollController`:
+`VitreumGlassBar`, `VitreumGlassNavigationBar`, and
+`VitreumNativeGlassNavigationBar` can listen to one `ScrollController`:
 
-- `minimizeOnScroll` minimizes after 18 logical pixels of sustained downward
-  travel once content has scrolled beyond 24 pixels.
-- It restores after 12 logical pixels upward, near the beginning, or on direct
-  pointer contact.
-- Minimized navigation stays visible at 86% scale and 88% opacity.
-- `scrollEdgeTreatment` slightly increases surface separation after content
-  moves underneath.
+- `minimizeOnScroll` minimizes after 28 logical pixels of sustained downward
+  user travel and restores after 16 logical pixels upward.
+- Raw pixel deltas are normalized with the attached vertical
+  `AxisDirection`, so `reverse: true` chat lists use screen-correct directions.
+- Tiny reversals reset the accumulated direction distance instead of toggling
+  immediately.
+- Idle and programmatic offset changes are ignored for minimization. Keyboard
+  avoidance, state restoration, and application scroll commands therefore do
+  not change the minimized state.
+- Reaching the controller's initial edge restores the bar. Non-scrollable and
+  horizontal positions do not drive minimization. Unattached and multiply
+  attached controllers are ignored rather than accessed through an invalid
+  single-position assumption.
+- Minimized navigation remains visible at 90% scale. The default translation
+  is zero, preserving the caller's safe-area placement.
+- `expandOnInteraction` defaults to true; set it to false to keep the compact
+  state while destinations are activated.
+- `scrollEdgeTreatment` slightly increases simulated surface separation after
+  content moves underneath.
 
-No shader is rebuilt and no platform-channel message is sent for a scroll
-event.
+Listeners are attached once, replaced when the controller changes, and
+removed during disposal. State rebuilds occur only when minimized or edge
+treatment state changes—not for every scroll pixel. No shader is rebuilt and
+no platform-channel message is sent for a scroll event.
 
 ## Background validation checklist
 

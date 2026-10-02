@@ -893,6 +893,9 @@ class _SimulatedTabBarReferencePageState
             right: 20,
             bottom: mediaPadding.bottom + 8,
             child: VitreumGlassNavigationBar(
+              scrollController: _scrollController,
+              minimizeOnScroll: true,
+              scrollEdgeTreatment: true,
               selectedIndex: _selectedIndex,
               onDestinationSelected: (value) =>
                   setState(() => _selectedIndex = value),

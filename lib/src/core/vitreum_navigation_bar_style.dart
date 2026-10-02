@@ -2,7 +2,7 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
-/// Layout and color treatment for Vitreum's simulated navigation bar.
+/// Layout and color treatment for Vitreum's Flutter-owned navigation bars.
 @immutable
 class VitreumNavigationBarStyle {
   const VitreumNavigationBarStyle({

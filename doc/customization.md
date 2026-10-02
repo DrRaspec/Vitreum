@@ -149,8 +149,8 @@ Disabled animations replace press scaling with an immediate, unscaled state.
 
 ## Navigation-bar style
 
-`VitreumNavigationBarStyle` controls the simulated navigation bar without
-changing its selection semantics or destination callbacks.
+`VitreumNavigationBarStyle` controls the Flutter-owned destination layout for
+both navigation widgets without changing selection semantics or callbacks.
 
 | Property | Default |
 |---|---:|
@@ -169,14 +169,50 @@ changing its selection semantics or destination callbacks.
 
 Finite layout values are clamped to non-negative renderer-safe ranges.
 Customize `shape`, `tint`, and `clipBehavior` directly on
-`VitreumGlassNavigationBar`.
+`VitreumGlassNavigationBar` or `VitreumNativeGlassNavigationBar`.
+
+Choose `VitreumGlassNavigationBar` for a portable simulated surface with a
+solid accessibility fallback.
+Choose `VitreumNativeGlassNavigationBar` when one navigation bar on the route
+should use the validated native iOS glass path. The latter uses Apple's public
+`UIGlassEffect` on supported iOS 26 devices and automatically falls back to the
+simulated renderer elsewhere. Both widgets keep their destinations and
+interaction in Flutter; neither is a UIKit `UITabBar`.
+
+Both navigation widgets also accept `scrollController`, `minimizeOnScroll`,
+`scrollEdgeTreatment`, `expandOnInteraction`, `minimizedTranslation`, and
+`minimizedScale`. Minimization is disabled by default for compatibility.
+Reversed vertical lists are detected automatically; callers should not invert
+their controller offsets manually.
+
+## Scroll-minimization configuration
+
+`VitreumGlassBar`, `VitreumGlassNavigationBar`, and
+`VitreumNativeGlassNavigationBar` share these controls:
+
+| Property | Default | Behavior |
+|---|---:|---|
+| `scrollController` | `null` | One vertical scroll source; unattached or multiply attached controllers are ignored safely |
+| `minimizeOnScroll` | `false` | Enables user-scroll-driven compact and expanded states |
+| `scrollEdgeTreatment` | `false` | Strengthens simulated separation after content moves beneath the bar |
+| `expandOnInteraction` | `true` | Pointer-down expands before the child handles the same interaction |
+| `minimizedTranslation` | `Offset.zero` | Fractional compact-state translation; zero preserves caller-owned safe-area placement |
+| `minimizedScale` | `0.9` | Compact-state scale; non-finite values restore `0.9`, finite values clamp to 0.5–1 |
+
+Minimization uses 28 logical pixels of sustained screen-wise downward movement
+and expansion uses 16 logical pixels upward. These thresholds are intentionally
+not public configuration: consistent hysteresis avoids per-screen behavior
+drift and rapid toggling. Idle or programmatic scroll changes do not minimize,
+while reaching the controller's initial edge restores the expanded state.
 
 ## Native-overlay boundary
 
-Use at most one `VitreumNativeGlassOverlay` per route. Multiple independent
-UIKit platform views are outside the validated composition topology and can
-produce missing, split, or stretched Flutter layers. Use `VitreumGlass` or a
-single composed overlay when multiple controls are required.
+Use at most one native overlay per route. A
+`VitreumNativeGlassNavigationBar` counts as that overlay and must not share a
+route with another `VitreumNativeGlassOverlay`. Multiple independent UIKit
+platform views are outside the validated composition topology and can produce
+missing, split, or stretched Flutter layers. Use `VitreumGlass` or one composed
+native overlay when multiple controls are required.
 
 Native optical edges are rendered by iOS. If diagnosing a small edge line,
 compare against `VitreumGlass(mode: VitreumMode.simulated, ...)`; simulated
@@ -192,3 +228,16 @@ directly must handle null or resolve the value from `VitreumThemeData.of`.
 Flutter children are now clipped to their glass shape on the native path,
 matching the existing simulated and solid behavior. Set
 `clipBehavior: Clip.none` to retain intentional child overflow.
+
+The default compact transform for `VitreumGlassBar` also changed from a
+hard-coded 86% scale with `Offset(0, 0.18)` translation to a configurable 90%
+scale with zero translation. This keeps externally applied safe-area spacing
+stable. To retain the previous appearance, pass:
+
+```dart
+VitreumGlassBar(
+  minimizedScale: 0.86,
+  minimizedTranslation: const Offset(0, 0.18),
+  child: child,
+)
+```

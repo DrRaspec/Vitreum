@@ -20,6 +20,7 @@ so blur quality, contrast, and fallback behavior remain visible.
 - Edge-to-edge moving content beneath the control layer
 - A separate diagnostics tab with exact backend capability fields
 - Pure-native, native-over-Flutter, and simulated comparison scenes
+- Reverse-aware, scroll-driven minimization in the simulated tab comparison
 - A configurable simulated-renderer stress test
 - Shape-aware child clipping and package-wide customization APIs
 
@@ -34,7 +35,12 @@ Launch a diagnostic directly:
 flutter run --dart-define=VITREUM_DIAGNOSTIC_SCENE=pure
 flutter run --dart-define=VITREUM_DIAGNOSTIC_SCENE=native_flutter
 flutter run --dart-define=VITREUM_DIAGNOSTIC_SCENE=simulated
+flutter run --dart-define=VITREUM_TAB_REFERENCE=simulated
 ```
+
+The final command opens the Flutter-owned tab comparison directly and
+demonstrates downward minimization, upward expansion, and tab selection while
+compact.
 
 ## Run
 

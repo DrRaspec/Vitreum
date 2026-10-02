@@ -25,13 +25,15 @@ Recordings:
 | Apple's actual tab-bar layout and material | `VitreumNativeTabScaffold` |
 | Native `UITabBarItem` semantics and selection | `VitreumNativeTabScaffold` |
 | iOS 26 `UITabBarController.MinimizeBehavior` | `VitreumNativeTabScaffold` |
-| Android, older iOS, web, or desktop | `VitreumGlassNavigationBar` |
-| Navigation inside an ordinary Flutter widget tree | `VitreumGlassNavigationBar` |
+| Native iOS 26 glass behind Flutter-owned destinations | `VitreumNativeGlassNavigationBar` |
+| Portable simulated navigation with solid fallback | `VitreumGlassNavigationBar` |
+| One adaptive API with native iOS 26 material and portable fallback | `VitreumNativeGlassNavigationBar` |
+| Portable navigation inside an ordinary Flutter widget tree | `VitreumGlassNavigationBar` |
 | Identical cross-platform application-controlled layout | `VitreumGlassNavigationBar` |
 
-The two implementations are intentionally separate APIs. A caller must choose
-one; Vitreum does not silently substitute a custom capsule for a native
-`UITabBar`.
+The system tab scaffold, native-material Flutter control, and portable
+simulation are intentionally separate APIs. A caller must choose one; Vitreum
+does not silently substitute a custom capsule for a native `UITabBar`.
 
 ## Architecture
 
@@ -75,6 +77,22 @@ It:
 - owns its Flutter icon, text, touch, and animation layout;
 - does not instantiate `UITabBar` or `UITabBarController`;
 - does not claim Apple's native tab-bar behavior.
+
+### `VitreumNativeGlassNavigationBar`
+
+[`VitreumNativeGlassNavigationBar`](../lib/src/widgets/vitreum_glass_navigation_bar.dart)
+keeps the same Flutter-owned destinations and selection contract but places
+them over Vitreum's validated single native overlay. On supported iOS 26
+devices, the material is Apple's public `UIGlassEffect`; elsewhere it falls
+back to the simulated renderer.
+
+It is useful for a custom floating control inside an ordinary Flutter route,
+sheet, or overlay. It still does not instantiate `UITabBar` or
+`UITabBarController`, does not receive native tab-item semantics, and does not
+provide controller-owned safe-area or minimization behavior. Its optional
+`scrollController` behavior is a Flutter-owned approximation, not
+`UITabBarController.MinimizeBehavior`. It also consumes the route's one
+validated native-overlay allowance.
 
 ## Why native host integration is required
 
@@ -255,8 +273,9 @@ if #available(iOS 26.0, *) {
 | `onScrollDown` | Minimizes while scrolling down and expands upward |
 | `onScrollUp` | Minimizes upward and expands downward; useful for bottom-aligned content |
 
-No minimization animation is reproduced in Flutter or manually applied to the
-native bar.
+The native reference does not reproduce or manually modify this system
+animation. Vitreum's Flutter-owned bars offer a separate restrained
+scroll-driven approximation; it is not presented as this UIKit behavior.
 
 The UIKit pages contain real `UIScrollView` subclasses and are the
 authoritative test. Flutter scrollables are rendered and gesture-managed by
@@ -319,7 +338,7 @@ Before release, verify:
 - split-view and Stage Manager when supporting iPad;
 - route presentation and dismissal during rotation.
 
-## Migration from the earlier custom/native-overlay bar
+## Migration from the earlier native-overlay option
 
 The removed `preferNativeOverlay` option did not create a native tab bar. It
 placed a custom Flutter destination row over a native glass platform view.
@@ -338,7 +357,25 @@ VitreumGlassNavigationBar(
 )
 ```
 
-This is always simulated and works in the Flutter tree.
+This requests the portable simulation and works in the Flutter tree. Reduced
+Transparency, high contrast, or an unavailable simulation can select the solid
+fallback.
+
+### Use native glass with Flutter destinations
+
+Replace the old boolean option with the explicit native-material widget:
+
+```dart
+VitreumNativeGlassNavigationBar(
+  selectedIndex: selectedIndex,
+  onDestinationSelected: onSelected,
+  destinations: destinations,
+)
+```
+
+This uses one native `UIGlassEffect` surface on supported iOS 26 devices and a
+simulated fallback elsewhere. Destination layout, selection, and semantics
+remain Flutter-owned. Do not add another native overlay to the same route.
 
 ### Adopt the system iOS tab bar
 
@@ -350,8 +387,9 @@ Move top-level navigation ownership to the iOS host:
 4. Remove the Flutter bottom bar from those native-hosted routes.
 5. Keep `VitreumGlassNavigationBar` for Android and portable modes.
 
-These paths do not have identical lifecycle or navigation-state semantics, so
-they should not be hidden behind one boolean backend flag.
+These three paths do not have identical ownership, lifecycle, or navigation
+semantics, so Vitreum exposes them as separate APIs instead of one backend
+boolean.
 
 ## Running the reference
 

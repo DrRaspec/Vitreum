@@ -8,6 +8,8 @@ import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
 import '../core/vitreum_theme.dart';
 import 'vitreum_glass.dart';
+import 'vitreum_native_glass_overlay.dart';
+import 'vitreum_scroll_minimizer.dart';
 
 /// A destination displayed by [VitreumGlassNavigationBar].
 @immutable
@@ -39,11 +41,42 @@ class VitreumGlassNavigationBar extends StatefulWidget {
     this.shape = const VitreumShape.capsule(),
     this.tint,
     this.inheritTint = true,
+    this.scrollController,
+    this.minimizeOnScroll = false,
+    this.scrollEdgeTreatment = false,
+    this.expandOnInteraction = true,
+    this.minimizedTranslation = Offset.zero,
+    this.minimizedScale = 0.9,
     this.clipBehavior = Clip.antiAlias,
     this.showDebugBounds = false,
     super.key,
   }) : assert(destinations.length >= 2),
-       assert(selectedIndex >= 0 && selectedIndex < destinations.length);
+       assert(selectedIndex >= 0 && selectedIndex < destinations.length),
+       _useNativeOverlay = false;
+
+  const VitreumGlassNavigationBar._native({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    this.style,
+    this.quality,
+    this.fallbackStyle,
+    this.navigationStyle,
+    this.shape = const VitreumShape.capsule(),
+    this.tint,
+    this.inheritTint = true,
+    this.scrollController,
+    this.minimizeOnScroll = false,
+    this.scrollEdgeTreatment = false,
+    this.expandOnInteraction = true,
+    this.minimizedTranslation = Offset.zero,
+    this.minimizedScale = 0.9,
+    this.clipBehavior = Clip.antiAlias,
+    this.showDebugBounds = false,
+    super.key,
+  }) : assert(destinations.length >= 2),
+       assert(selectedIndex >= 0 && selectedIndex < destinations.length),
+       _useNativeOverlay = true;
 
   /// Destinations displayed from left to right.
   final List<VitreumNavigationDestination> destinations;
@@ -75,6 +108,30 @@ class VitreumGlassNavigationBar extends StatefulWidget {
   /// Whether a null [tint] inherits the theme tint.
   final bool inheritTint;
 
+  /// Scroll source used by [minimizeOnScroll] and [scrollEdgeTreatment].
+  final ScrollController? scrollController;
+
+  /// Minimizes after sustained screen-wise downward user scrolling and
+  /// restores while scrolling upward. Reversed vertical scrollables are
+  /// detected from their attached scroll position.
+  final bool minimizeOnScroll;
+
+  /// Strengthens simulated separation once content has moved under the bar.
+  final bool scrollEdgeTreatment;
+
+  /// Whether pointer interaction restores a minimized bar before its
+  /// destination handles the same interaction.
+  final bool expandOnInteraction;
+
+  /// Fractional translation applied in the minimized state.
+  final Offset minimizedTranslation;
+
+  /// Scale applied in the minimized state. Every destination remains visible
+  /// and selectable.
+  final double minimizedScale;
+
+  final bool _useNativeOverlay;
+
   /// How navigation content is clipped to [shape].
   final Clip clipBehavior;
 
@@ -97,43 +154,78 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
     final fallbackStyle = widget.fallbackStyle ?? theme.fallbackStyle;
     final navigationStyle = widget.navigationStyle ?? theme.navigationBarStyle;
     final navigationValues = navigationStyle.validated();
-    final content = SizedBox(
-      height: navigationValues.height,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: navigationValues.horizontalPadding,
-        ),
-        child: Row(
-          children: List<Widget>.generate(
-            widget.destinations.length,
-            (index) => _destination(index, navigationValues),
+    final tint = widget.tint ?? (widget.inheritTint ? theme.tint : null);
+    return VitreumScrollMinimizer(
+      scrollController: widget.scrollController,
+      minimizeOnScroll: widget.minimizeOnScroll,
+      trackScrollEdge: widget.scrollEdgeTreatment,
+      expandOnInteraction: widget.expandOnInteraction,
+      minimizedTranslation: widget.minimizedTranslation,
+      minimizedScale: widget.minimizedScale,
+      builder: (context, hasScrolledContent) {
+        final effectiveFallback =
+            widget.scrollEdgeTreatment && hasScrolledContent
+            ? fallbackStyle.copyWith(
+                surfaceOpacity: (fallbackStyle.surfaceOpacity + 0.025)
+                    .clamp(0, 1)
+                    .toDouble(),
+                shadowStrength: (fallbackStyle.shadowStrength + 0.08)
+                    .clamp(0, 1)
+                    .toDouble(),
+              )
+            : fallbackStyle;
+        final content = SizedBox(
+          height: navigationValues.height,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: navigationValues.horizontalPadding,
+            ),
+            child: Row(
+              children: List<Widget>.generate(
+                widget.destinations.length,
+                (index) => _destination(index, navigationValues),
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        );
+        final surface = widget._useNativeOverlay
+            ? VitreumNativeGlassOverlay(
+                shape: widget.shape,
+                style: style,
+                quality: quality,
+                fallbackStyle: effectiveFallback,
+                tint: tint,
+                inheritTint: false,
+                semanticLabel: 'Primary navigation',
+                clipBehavior: widget.clipBehavior,
+                child: content,
+              )
+            : VitreumGlass(
+                mode: VitreumMode.simulated,
+                shape: widget.shape,
+                style: style,
+                quality: quality,
+                fallbackStyle: effectiveFallback,
+                tint: tint,
+                inheritTint: false,
+                semanticLabel: 'Simulated primary navigation',
+                clipBehavior: widget.clipBehavior,
+                child: content,
+              );
 
-    final surface = VitreumGlass(
-      mode: VitreumMode.simulated,
-      shape: widget.shape,
-      style: style,
-      quality: quality,
-      fallbackStyle: fallbackStyle,
-      tint: widget.tint ?? (widget.inheritTint ? theme.tint : null),
-      inheritTint: false,
-      semanticLabel: 'Simulated primary navigation',
-      clipBehavior: widget.clipBehavior,
-      child: content,
-    );
-
-    return Stack(
-      fit: StackFit.passthrough,
-      children: <Widget>[
-        surface,
-        if (widget.showDebugBounds)
-          const Positioned.fill(
-            child: IgnorePointer(child: CustomPaint(painter: _BoundsPainter())),
-          ),
-      ],
+        return Stack(
+          fit: StackFit.passthrough,
+          children: <Widget>[
+            surface,
+            if (widget.showDebugBounds)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(painter: _BoundsPainter()),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -213,6 +305,40 @@ class _VitreumGlassNavigationBarState extends State<VitreumGlassNavigationBar> {
       ),
     );
   }
+}
+
+/// Floating navigation with one native iOS glass surface when supported.
+///
+/// The destinations, selection, layout, and semantics remain Flutter-owned;
+/// this is not a UIKit `UITabBar`. On supported iOS 26 environments, the
+/// background uses Apple's public `UIGlassEffect`. Other environments fall
+/// back to Vitreum's simulated renderer.
+///
+/// Use at most one instance on a route and do not combine it with another
+/// [VitreumNativeGlassOverlay] on that route. One native overlay is the only
+/// validated platform-view composition topology.
+class VitreumNativeGlassNavigationBar extends VitreumGlassNavigationBar {
+  const VitreumNativeGlassNavigationBar({
+    required super.destinations,
+    required super.selectedIndex,
+    required super.onDestinationSelected,
+    super.style,
+    super.quality,
+    super.fallbackStyle,
+    super.navigationStyle,
+    super.shape,
+    super.tint,
+    super.inheritTint,
+    super.scrollController,
+    super.minimizeOnScroll,
+    super.scrollEdgeTreatment,
+    super.expandOnInteraction,
+    super.minimizedTranslation,
+    super.minimizedScale,
+    super.clipBehavior,
+    super.showDebugBounds,
+    super.key,
+  }) : super._native();
 }
 
 class _BoundsPainter extends CustomPainter {

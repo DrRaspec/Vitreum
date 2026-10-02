@@ -143,7 +143,7 @@ continue to behave like normal Flutter widgets.
 
 ### Scoped native iOS overlay
 
-Use this only for one bounded native overlay on a route. It falls back to the
+Use this only as the route's one bounded native overlay. It falls back to the
 Flutter renderer when its dedicated validation gate is unavailable:
 
 ```dart
@@ -157,7 +157,8 @@ VitreumNativeGlassOverlay(
 )
 ```
 
-Do not create several instances on one route. That topology reproduced
+Do not combine it with another `VitreumNativeGlassOverlay` or a
+`VitreumNativeGlassNavigationBar` on the same route. That topology reproduced
 stretched Flutter layers in the iOS 26.5 simulator and is not supported.
 
 ## Core widgets
@@ -298,7 +299,8 @@ VitreumGlassButton(
 ### Floating navigation bar
 
 `VitreumGlassNavigationBar` is a cross-platform Flutter approximation. It is
-not a native iOS `UITabBar` and never presents itself as one:
+always routed through the portable renderer—with a solid accessibility
+fallback—and is not a native iOS `UITabBar`:
 
 ```dart
 VitreumGlassNavigationBar(
@@ -317,7 +319,34 @@ VitreumGlassNavigationBar(
 )
 ```
 
-For the real system behavior, the example iOS host provides
+When the destinations must stay in Flutter but the material should use Apple's
+native glass on iOS 26, use the explicitly scoped native variant:
+
+```dart
+VitreumNativeGlassNavigationBar(
+  selectedIndex: selectedIndex,
+  onDestinationSelected: selectDestination,
+  destinations: const [
+    VitreumNavigationDestination(
+      icon: Icons.photo_library_outlined,
+      label: 'Gallery',
+    ),
+    VitreumNavigationDestination(
+      icon: Icons.insert_drive_file_outlined,
+      label: 'File',
+    ),
+  ],
+)
+```
+
+`VitreumNativeGlassNavigationBar` uses one native `UIGlassEffect` surface on
+supported iOS 26 devices and automatically falls back to Vitreum's simulation
+on Android and iOS 13–25. Reduced Transparency, high contrast, or an unavailable
+simulation selects the readable solid fallback. Its destinations, selection,
+semantics, and layout remain Flutter widgets; it is not a UIKit `UITabBar`. Use
+at most one native navigation bar or `VitreumNativeGlassOverlay` on a route.
+
+For actual system tab-bar ownership and behavior, the example iOS host provides
 `VitreumNativeTabScaffold`, an actual `UITabBarController` with
 `UITabBarItem`s and default system appearance. It requires native host
 integration because a native container view controller cannot be installed by
@@ -380,12 +409,16 @@ VitreumGlassBar(
   scrollController: controller,
   minimizeOnScroll: true,
   scrollEdgeTreatment: true,
+  expandOnInteraction: true,
   child: navigationItems,
 )
 ```
 
 The minimized bar remains visible and restores on upward scrolling or direct
-interaction.
+interaction. `VitreumGlassNavigationBar` and
+`VitreumNativeGlassNavigationBar` expose the same scroll options directly, so
+they do not need to be nested inside another glass surface. Reversed vertical
+lists are detected automatically from the attached scroll position.
 
 ## Rendering modes
 
@@ -538,9 +571,10 @@ retain the bounded balanced renderer.
 First confirm the active backend. For simulated glass, set `edgeWidth: 0` or
 `borderOpacity: 0` to distinguish edge lighting from child content. For native
 iOS glass, the system owns optical edge rendering; ensure the route contains
-only one `VitreumNativeGlassOverlay`, as multiple platform-view overlays are
-not supported. Keep `clipBehavior` enabled when child content must remain
-inside the shape.
+only one native overlay (`VitreumNativeGlassOverlay` or
+`VitreumNativeGlassNavigationBar`), as multiple platform-view overlays are not
+supported. Keep `clipBehavior` enabled when child content must remain inside
+the shape.
 
 </details>
 

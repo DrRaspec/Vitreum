@@ -21,6 +21,9 @@
 ## Start here
 
 - Building an ordinary Flutter interface: read the root [README](../README.md).
+- Adding native iOS 26 glass behind Flutter-owned navigation: use
+  `VitreumNativeGlassNavigationBar` in the root [README](../README.md), then
+  review the [native glass composition](native_composition_spike.md) limits.
 - Requiring Apple's actual system tab bar: read
   [Native iOS tab-bar integration](native_tab_scaffold.md).
 - Evaluating native platform-view glass: read

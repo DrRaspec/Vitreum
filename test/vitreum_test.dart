@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vitreum/src/core/vitreum_backend_selector.dart';
 import 'package:vitreum/src/debug/vitreum_performance_overlay.dart';
 import 'package:vitreum/src/rendering/solid_glass_renderer.dart';
+import 'package:vitreum/src/widgets/vitreum_scroll_minimizer.dart';
 import 'package:vitreum/vitreum.dart';
 
 const VitreumCapabilities _androidCapabilities = VitreumCapabilities(
@@ -636,6 +637,39 @@ void main() {
       expect(firstIcon.color, Colors.amber);
     });
 
+    testWidgets('native navigation uses the single native overlay path', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 360,
+              child: VitreumNativeGlassNavigationBar(
+                selectedIndex: 0,
+                onDestinationSelected: (_) {},
+                destinations: const <VitreumNavigationDestination>[
+                  VitreumNavigationDestination(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Gallery',
+                  ),
+                  VitreumNavigationDestination(
+                    icon: Icons.insert_drive_file_outlined,
+                    label: 'File',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(VitreumNativeGlassNavigationBar), findsOneWidget);
+      expect(find.byType(VitreumNativeGlassOverlay), findsOneWidget);
+      expect(find.text('Gallery'), findsOneWidget);
+      expect(find.text('File'), findsOneWidget);
+    });
+
     testWidgets('materialize transition is offstage when hidden', (
       tester,
     ) async {
@@ -657,41 +691,439 @@ void main() {
       expect(find.byType(IgnorePointer), findsWidgets);
     });
 
-    testWidgets('bar minimizes down and restores up with hysteresis', (
+    testWidgets('scroll-aware bar starts expanded', (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      expect(_minimizerScale(tester), 1);
+      expect(_minimizerSlide(tester), Offset.zero);
+    });
+
+    testWidgets('scrolling down minimizes and scrolling up expands', (
       tester,
     ) async {
       final controller = ScrollController();
       addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+      expect(_minimizerScale(tester), 0.9);
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, 50));
+      await tester.pump();
+      expect(_minimizerScale(tester), 1);
+    });
+
+    testWidgets('minimized bar remains visible and keeps safe placement', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+
+      expect(find.text('Navigation'), findsOneWidget);
+      expect(_minimizerScale(tester), greaterThan(0));
+      expect(_minimizerSlide(tester), Offset.zero);
+      expect(
+        tester
+            .widgetList<Offstage>(find.byType(Offstage))
+            .every((widget) => !widget.offstage),
+        isTrue,
+      );
+    });
+
+    testWidgets('tapping a minimized bar expands it and activates its child', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      var taps = 0;
+      await tester.pumpWidget(
+        _barHarness(
+          controller: controller,
+          child: GestureDetector(
+            onTap: () => taps++,
+            child: const Text('Navigation'),
+          ),
+        ),
+      );
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+      expect(_minimizerScale(tester), 0.9);
+
+      await tester.tap(find.text('Navigation'));
+      await tester.pump();
+      expect(_minimizerScale(tester), 1);
+      expect(taps, 1);
+    });
+
+    testWidgets('navigation destinations remain selectable while minimized', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      var selectedIndex = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) => Stack(
+              children: <Widget>[
+                ListView.builder(
+                  key: _scrollableKey,
+                  controller: controller,
+                  physics: const ClampingScrollPhysics(),
+                  itemCount: 30,
+                  itemBuilder: (_, index) =>
+                      SizedBox(height: 80, child: Text('$index')),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SizedBox(
+                    width: 360,
+                    child: VitreumGlassNavigationBar(
+                      scrollController: controller,
+                      minimizeOnScroll: true,
+                      selectedIndex: selectedIndex,
+                      onDestinationSelected: (value) =>
+                          setState(() => selectedIndex = value),
+                      destinations: const <VitreumNavigationDestination>[
+                        VitreumNavigationDestination(
+                          icon: Icons.home_outlined,
+                          label: 'Home',
+                        ),
+                        VitreumNavigationDestination(
+                          icon: Icons.settings_outlined,
+                          label: 'Settings',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+      expect(_minimizerScale(tester), 0.9);
+
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      expect(selectedIndex, 1);
+      expect(_minimizerScale(tester), 1);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('tiny scroll movement does not toggle the bar', (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(_scrollableKey)),
+      );
+      await gesture.moveBy(const Offset(0, -22));
+      await tester.pump();
+      expect(_minimizerScale(tester), 1);
+      await gesture.up();
+    });
+
+    testWidgets('rapid sub-threshold direction changes do not flicker', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      for (final movement in const <Offset>[
+        Offset(0, -22),
+        Offset(0, 22),
+        Offset(0, -22),
+        Offset(0, 22),
+      ]) {
+        await tester.drag(find.byKey(_scrollableKey), movement);
+        await tester.pump();
+        expect(_minimizerScale(tester), 1);
+      }
+    });
+
+    testWidgets('repeated same-direction events do not rebuild the bar', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      var builds = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Stack(
             children: <Widget>[
               ListView.builder(
+                key: _scrollableKey,
                 controller: controller,
+                physics: const ClampingScrollPhysics(),
                 itemCount: 30,
                 itemBuilder: (_, index) =>
                     SizedBox(height: 80, child: Text('$index')),
               ),
-              VitreumGlassBar(
-                scrollController: controller,
-                minimizeOnScroll: true,
-                child: const Text('Navigation'),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: VitreumScrollMinimizer(
+                  scrollController: controller,
+                  minimizeOnScroll: true,
+                  trackScrollEdge: false,
+                  expandOnInteraction: true,
+                  minimizedTranslation: Offset.zero,
+                  minimizedScale: 0.9,
+                  builder: (context, hasScrolledContent) {
+                    builds++;
+                    return const SizedBox(
+                      width: 240,
+                      height: 64,
+                      child: Text('Navigation'),
+                    );
+                  },
+                ),
               ),
             ],
           ),
         ),
       );
 
-      controller.jumpTo(40);
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
       await tester.pump();
-      expect(
-        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale,
-        0.86,
+      final buildsAfterMinimize = builds;
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+
+      expect(_minimizerScale(tester), 0.9);
+      expect(builds, buildsAfterMinimize);
+    });
+
+    testWidgets('changing controllers detaches listeners exactly once', (
+      tester,
+    ) async {
+      final first = _TrackingScrollController();
+      final second = _TrackingScrollController();
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      var controller = first;
+      late StateSetter rebuild;
+      await tester.pumpWidget(
+        StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            return _barHarness(controller: controller);
+          },
+        ),
+      );
+      expect(first.listenerAdds, 1);
+
+      rebuild(() => controller = second);
+      await tester.pump();
+      expect(first.listenerRemoves, 1);
+      expect(second.listenerAdds, 1);
+
+      await tester.pumpWidget(const SizedBox());
+      expect(second.listenerRemoves, 1);
+      first.emit();
+      second.emit();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('non-scrollable content remains expanded', (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        _barHarness(controller: controller, itemCount: 1),
       );
 
-      controller.jumpTo(10);
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -120));
       await tester.pump();
-      expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, 1);
+      expect(_minimizerScale(tester), 1);
     });
+
+    testWidgets('idle programmatic movement does not minimize the bar', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      controller.jumpTo(80);
+      await tester.pump();
+      expect(_minimizerScale(tester), 1);
+    });
+
+    testWidgets('reaching the initial edge restores a minimized bar', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+      expect(_minimizerScale(tester), 0.9);
+
+      controller.jumpTo(controller.position.minScrollExtent);
+      await tester.pump();
+      expect(_minimizerScale(tester), 1);
+    });
+
+    testWidgets('keyboard inset changes preserve the current bar state', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(_barHarness(controller: controller));
+
+      await tester.pumpWidget(
+        _barHarness(
+          controller: controller,
+          viewInsets: const EdgeInsets.only(bottom: 300),
+        ),
+      );
+      expect(_minimizerScale(tester), 1);
+      expect(_minimizerSlide(tester), Offset.zero);
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+      expect(_minimizerScale(tester), 0.9);
+
+      await tester.pumpWidget(
+        _barHarness(controller: controller, viewInsets: EdgeInsets.zero),
+      );
+      expect(_minimizerScale(tester), 0.9);
+      expect(_minimizerSlide(tester), Offset.zero);
+    });
+
+    testWidgets('reverse lists normalize down and up directions', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        _barHarness(controller: controller, reverse: true),
+      );
+
+      controller.jumpTo(100);
+      await tester.pump();
+      expect(_minimizerScale(tester), 1);
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+      await tester.pump();
+      expect(_minimizerScale(tester), 0.9);
+
+      await tester.drag(find.byKey(_scrollableKey), const Offset(0, 50));
+      await tester.pump();
+      expect(_minimizerScale(tester), 1);
+    });
+
+    testWidgets(
+      'disabling minimization and interaction expansion are honored',
+      (tester) async {
+        final disabledController = ScrollController();
+        addTearDown(disabledController.dispose);
+        await tester.pumpWidget(
+          _barHarness(controller: disabledController, minimizeOnScroll: false),
+        );
+        await tester.drag(find.byKey(_scrollableKey), const Offset(0, -100));
+        await tester.pump();
+        expect(_minimizerScale(tester), 1);
+
+        final interactionController = ScrollController();
+        addTearDown(interactionController.dispose);
+        await tester.pumpWidget(
+          _barHarness(
+            controller: interactionController,
+            expandOnInteraction: false,
+          ),
+        );
+        await tester.drag(find.byKey(_scrollableKey), const Offset(0, -80));
+        await tester.pump();
+        expect(_minimizerScale(tester), 0.9);
+
+        await tester.tap(find.text('Navigation'));
+        await tester.pump();
+        expect(_minimizerScale(tester), 0.9);
+      },
+    );
   });
+}
+
+const _scrollableKey = ValueKey<String>('scrollable');
+
+Widget _barHarness({
+  required ScrollController controller,
+  bool reverse = false,
+  int itemCount = 30,
+  bool minimizeOnScroll = true,
+  bool expandOnInteraction = true,
+  EdgeInsets viewInsets = EdgeInsets.zero,
+  Widget child = const Text('Navigation'),
+}) => MaterialApp(
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(viewInsets: viewInsets),
+    child: child!,
+  ),
+  home: Stack(
+    children: <Widget>[
+      ListView.builder(
+        key: _scrollableKey,
+        controller: controller,
+        reverse: reverse,
+        physics: const ClampingScrollPhysics(),
+        itemCount: itemCount,
+        itemBuilder: (_, index) => SizedBox(height: 80, child: Text('$index')),
+      ),
+      Align(
+        alignment: Alignment.bottomCenter,
+        child: VitreumGlassBar(
+          scrollController: controller,
+          minimizeOnScroll: minimizeOnScroll,
+          expandOnInteraction: expandOnInteraction,
+          child: child,
+        ),
+      ),
+    ],
+  ),
+);
+
+double _minimizerScale(WidgetTester tester) => tester
+    .widget<AnimatedScale>(
+      find.byKey(const ValueKey('vitreum-scroll-minimizer-scale')),
+    )
+    .scale;
+
+Offset _minimizerSlide(WidgetTester tester) => tester
+    .widget<AnimatedSlide>(
+      find.byKey(const ValueKey('vitreum-scroll-minimizer-slide')),
+    )
+    .offset;
+
+class _TrackingScrollController extends ScrollController {
+  int listenerAdds = 0;
+  int listenerRemoves = 0;
+
+  @override
+  void addListener(VoidCallback listener) {
+    listenerAdds++;
+    super.addListener(listener);
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    listenerRemoves++;
+    super.removeListener(listener);
+  }
+
+  void emit() => notifyListeners();
 }

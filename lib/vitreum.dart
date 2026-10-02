@@ -21,7 +21,10 @@ export 'src/widgets/vitreum_glass_bar.dart' show VitreumGlassBar;
 export 'src/widgets/vitreum_glass_button.dart' show VitreumGlassButton;
 export 'src/widgets/vitreum_glass_group.dart' show VitreumGlassGroup;
 export 'src/widgets/vitreum_glass_navigation_bar.dart'
-    show VitreumGlassNavigationBar, VitreumNavigationDestination;
+    show
+        VitreumGlassNavigationBar,
+        VitreumNativeGlassNavigationBar,
+        VitreumNavigationDestination;
 export 'src/widgets/vitreum_glass_transition.dart' show VitreumGlassTransition;
 export 'src/widgets/vitreum_native_glass_overlay.dart'
     show VitreumNativeGlassOverlay;

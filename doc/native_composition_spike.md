@@ -54,15 +54,18 @@ The validated path now enforces:
 
 Generic `VitreumGlass` and automatic mode use the Flutter simulation because
 `nativeBackdropCompositionValidated` is false. The separate
-`VitreumNativeGlassOverlay` may use native iOS only when all of these are true:
+`VitreumNativeGlassOverlay` and `VitreumNativeGlassNavigationBar` may use native
+iOS only when all of these are true:
 
 1. `nativeApiExists`
 2. `nativeViewCanBeCreated`
 3. `nativeSingleOverlayCompositionValidated`
 
 Reduced Transparency selects the solid backend. Older iOS versions and failed
-native gates use the simulated renderer. Applications must use at most one
-specialized native overlay per route. `VitreumGlassGroup` remains simulated
+native gates use the simulated renderer. A `VitreumNativeGlassNavigationBar`
+counts as the route's single specialized native overlay. Applications must not
+combine it with another native overlay on the same route.
+`VitreumGlassGroup` remains simulated
 because true native grouping requires one UIKit hierarchy with
 `UIGlassContainerEffect`; multiple unrelated `UiKitView` instances are never
 reported as native grouping.

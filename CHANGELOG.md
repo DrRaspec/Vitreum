@@ -16,6 +16,17 @@
 
 ### Added and fixed
 
+- Added `VitreumNativeGlassNavigationBar` for Flutter-owned navigation over one
+  native iOS 26 `UIGlassEffect` surface, with automatic simulated fallback on
+  unsupported or unvalidated environments.
+- Added shared, reverse-aware scroll minimization to `VitreumGlassBar`,
+  `VitreumGlassNavigationBar`, and `VitreumNativeGlassNavigationBar`, including
+  interaction expansion control, movement hysteresis, safe listener lifecycle,
+  and protection from idle or keyboard-driven offset changes.
+- Changed the default minimized transform from a hard-coded 86% scale and
+  downward translation to a configurable 90% scale with zero translation,
+  preserving caller-owned safe-area spacing. The former values remain
+  available through explicit configuration.
 - Added consistent shape-aware Flutter child clipping across native, simulated,
   and solid glass surfaces, with configurable `clipBehavior`.
 - Added simulated edge width/color and shadow blur/offset/color controls.

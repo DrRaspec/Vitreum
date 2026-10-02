@@ -7,6 +7,7 @@ import '../core/vitreum_shape.dart';
 import '../core/vitreum_style.dart';
 import '../core/vitreum_theme.dart';
 import 'vitreum_glass.dart';
+import 'vitreum_scroll_minimizer.dart';
 
 /// Convenience glass surface for toolbars and floating navigation bars.
 class VitreumGlassBar extends StatefulWidget {
@@ -24,7 +25,9 @@ class VitreumGlassBar extends StatefulWidget {
     this.scrollController,
     this.minimizeOnScroll = false,
     this.scrollEdgeTreatment = false,
-    this.minimizedTranslation = const Offset(0, 0.18),
+    this.expandOnInteraction = true,
+    this.minimizedTranslation = Offset.zero,
+    this.minimizedScale = 0.9,
     this.clipBehavior = Clip.antiAlias,
     super.key,
   });
@@ -62,16 +65,25 @@ class VitreumGlassBar extends StatefulWidget {
   /// Scroll source used by [minimizeOnScroll] and [scrollEdgeTreatment].
   final ScrollController? scrollController;
 
-  /// Minimizes after sustained downward scrolling and restores on upward
-  /// scrolling or direct interaction. Navigation remains visible.
+  /// Minimizes after sustained screen-wise downward user scrolling and
+  /// restores on upward scrolling or direct interaction. Navigation remains
+  /// visible. Reversed vertical scrollables are detected automatically.
   final bool minimizeOnScroll;
 
   /// Strengthens separation once content has moved under the bar.
   final bool scrollEdgeTreatment;
 
+  /// Whether pointer interaction restores a minimized bar before the child
+  /// handles the same interaction.
+  final bool expandOnInteraction;
+
   /// Fractional translation applied in the minimized state. Bottom bars
   /// normally use a positive Y value; top bars can use a negative value.
   final Offset minimizedTranslation;
+
+  /// Scale applied in the minimized state. The default keeps the transition
+  /// restrained while leaving every control visible and selectable.
+  final double minimizedScale;
 
   /// How the Flutter child is clipped to [shape].
   final Clip clipBehavior;
@@ -81,118 +93,43 @@ class VitreumGlassBar extends StatefulWidget {
 }
 
 class _VitreumGlassBarState extends State<VitreumGlassBar> {
-  bool _minimized = false;
-  bool _hasScrolledContent = false;
-  double _lastOffset = 0;
-  double _directionDistance = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _attach(widget.scrollController);
-  }
-
-  @override
-  void didUpdateWidget(VitreumGlassBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.scrollController != widget.scrollController) {
-      _detach(oldWidget.scrollController);
-      _attach(widget.scrollController);
-    }
-  }
-
-  void _attach(ScrollController? controller) {
-    controller?.addListener(_handleScroll);
-    if (controller?.hasClients ?? false) _lastOffset = controller!.offset;
-  }
-
-  void _detach(ScrollController? controller) {
-    controller?.removeListener(_handleScroll);
-  }
-
-  void _handleScroll() {
-    final controller = widget.scrollController;
-    if (controller == null || !controller.hasClients) return;
-    final offset = controller.offset;
-    final delta = offset - _lastOffset;
-    _lastOffset = offset;
-    final hasContent = offset > 2;
-
-    if (delta.sign != _directionDistance.sign) _directionDistance = 0;
-    _directionDistance += delta;
-
-    var minimized = _minimized;
-    if (widget.minimizeOnScroll && offset > 24 && _directionDistance > 18) {
-      minimized = true;
-      _directionDistance = 0;
-    } else if (_directionDistance < -12 || offset <= 2) {
-      minimized = false;
-      _directionDistance = 0;
-    }
-
-    if (minimized != _minimized || hasContent != _hasScrolledContent) {
-      setState(() {
-        _minimized = minimized;
-        _hasScrolledContent = hasContent;
-      });
-    }
-  }
-
-  void _restoreForInteraction() {
-    if (_minimized) setState(() => _minimized = false);
-  }
-
-  @override
-  void dispose() {
-    _detach(widget.scrollController);
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     final theme = VitreumThemeData.of(context);
     final style = widget.style ?? theme.style;
     final quality = widget.quality ?? theme.quality;
     final fallbackStyle = widget.fallbackStyle ?? theme.fallbackStyle;
-    final duration = reduceMotion
-        ? Duration.zero
-        : const Duration(milliseconds: 180);
-    final fallback = widget.scrollEdgeTreatment && _hasScrolledContent
-        ? fallbackStyle.copyWith(
-            surfaceOpacity: (fallbackStyle.surfaceOpacity + 0.025)
-                .clamp(0, 1)
-                .toDouble(),
-            shadowStrength: (fallbackStyle.shadowStrength + 0.08)
-                .clamp(0, 1)
-                .toDouble(),
-          )
-        : fallbackStyle;
-
-    return Listener(
-      onPointerDown: (_) => _restoreForInteraction(),
-      child: AnimatedSlide(
-        duration: duration,
-        curve: Curves.easeInOutCubic,
-        offset: _minimized ? widget.minimizedTranslation : Offset.zero,
-        child: AnimatedScale(
-          duration: duration,
-          curve: Curves.easeInOutCubic,
-          scale: _minimized ? 0.86 : 1,
-          child: VitreumGlass(
-            mode: widget.mode,
-            style: style,
-            quality: quality,
-            shape: widget.shape,
-            fallbackStyle: fallback,
-            tint: widget.tint ?? (widget.inheritTint ? theme.tint : null),
-            inheritTint: false,
-            semanticLabel: widget.semanticLabel,
-            clipBehavior: widget.clipBehavior,
-            child: Padding(padding: widget.padding, child: widget.child),
-          ),
-        ),
-      ),
+    return VitreumScrollMinimizer(
+      scrollController: widget.scrollController,
+      minimizeOnScroll: widget.minimizeOnScroll,
+      trackScrollEdge: widget.scrollEdgeTreatment,
+      expandOnInteraction: widget.expandOnInteraction,
+      minimizedTranslation: widget.minimizedTranslation,
+      minimizedScale: widget.minimizedScale,
+      builder: (context, hasScrolledContent) {
+        final fallback = widget.scrollEdgeTreatment && hasScrolledContent
+            ? fallbackStyle.copyWith(
+                surfaceOpacity: (fallbackStyle.surfaceOpacity + 0.025)
+                    .clamp(0, 1)
+                    .toDouble(),
+                shadowStrength: (fallbackStyle.shadowStrength + 0.08)
+                    .clamp(0, 1)
+                    .toDouble(),
+              )
+            : fallbackStyle;
+        return VitreumGlass(
+          mode: widget.mode,
+          style: style,
+          quality: quality,
+          shape: widget.shape,
+          fallbackStyle: fallback,
+          tint: widget.tint ?? (widget.inheritTint ? theme.tint : null),
+          inheritTint: false,
+          semanticLabel: widget.semanticLabel,
+          clipBehavior: widget.clipBehavior,
+          child: Padding(padding: widget.padding, child: widget.child),
+        );
+      },
     );
   }
 }
